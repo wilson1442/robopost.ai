@@ -2,12 +2,12 @@ const steps = [
   {
     number: "01",
     title: "Configure Your Sources",
-    description: "Select your industry and add RSS feeds. We store the configuration, n8n handles the fetching.",
+    description: "Select your industry and add RSS feeds. We store the configuration, robopost.ai handles the fetching.",
   },
   {
     number: "02",
     title: "Trigger AI Agents",
-    description: "Send structured webhooks to n8n. AI agents process content, synthesize, and format outputs.",
+    description: "Send structured webhooks to robopost.ai. AI agents process content, synthesize, and format outputs.",
   },
   {
     number: "03",
@@ -26,7 +26,7 @@ export default function HowItWorks() {
             <span className="text-gradient">How It Works</span>
           </h2>
           <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-            Simple three-step process. You control the configuration, n8n handles the intelligence.
+            Simple three-step process. You control the configuration, robopost.ai handles the intelligence.
           </p>
         </div>
         
@@ -65,7 +65,7 @@ export default function HowItWorks() {
           <div className="glass-effect rounded-xl p-6 max-w-3xl mx-auto">
             <p className="text-gray-300">
               <span className="font-bold text-primary-400">Architecture:</span>{" "}
-              This app is a control plane. All AI processing happens in n8n workflows
+              This app is a control plane. All AI processing happens in robopost.ai workflows
               triggered via webhooks. No AI models run in the Next.js application.
             </p>
           </div>

@@ -6,7 +6,7 @@ const features = [
   },
   {
     title: "AI Synthesis",
-    description: "Powerful AI agents process and synthesize content. All intelligence runs in n8n workflows.",
+    description: "Powerful AI agents process and synthesize content. All intelligence runs in robopost.ai workflows.",
     icon: "🤖",
   },
   {
