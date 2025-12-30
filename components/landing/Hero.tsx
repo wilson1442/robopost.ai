@@ -1,4 +1,13 @@
+"use client";
+
 export default function Hero() {
+  const scrollToEarlyAccess = () => {
+    const element = document.getElementById("early-access");
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Animated gradient background */}
@@ -26,7 +35,10 @@ export default function Hero() {
         
         {/* Primary CTA */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-slide-up">
-          <button className="px-8 py-4 bg-gradient-accent text-white font-bold text-lg rounded-lg hover-lift hover-glow shadow-lg shadow-primary-500/50">
+          <button 
+            onClick={scrollToEarlyAccess}
+            className="px-8 py-4 bg-gradient-accent text-white font-bold text-lg rounded-lg hover-lift hover-glow shadow-lg shadow-primary-500/50"
+          >
             Get Early Access
           </button>
           <button className="px-8 py-4 glass-effect text-gray-200 font-semibold text-lg rounded-lg hover-lift border-2 border-primary-500/30">
