@@ -1,6 +1,12 @@
 import { requireGuest } from "@/lib/auth/auth";
 import SignUpForm from "@/components/auth/SignUpForm";
 import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Sign Up - robopost.ai",
+  description: "Create your robopost.ai account",
+};
 
 export default async function SignUpPage() {
   await requireGuest();

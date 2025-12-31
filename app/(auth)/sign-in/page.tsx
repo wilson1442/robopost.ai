@@ -2,6 +2,12 @@ import { requireGuest } from "@/lib/auth/auth";
 import SignInForm from "@/components/auth/SignInForm";
 import Link from "next/link";
 import { Suspense } from "react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Sign In - robopost.ai",
+  description: "Sign in to your robopost.ai account",
+};
 
 export default async function SignInPage({
   searchParams,
@@ -10,7 +16,13 @@ export default async function SignInPage({
 }) {
   await requireGuest();
   
-  const params = await searchParams;
+  let params: { message?: string; redirect?: string } = {};
+  try {
+    params = await searchParams;
+  } catch (error) {
+    // Handle error gracefully if searchParams fails
+    console.error("Error parsing searchParams:", error);
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
