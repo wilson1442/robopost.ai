@@ -19,12 +19,12 @@ export async function GET(
         custom_name,
         is_active,
         created_at,
-        rss_source:rss_sources (
+        rss_sources (
           id,
           url,
           name,
           industry_id,
-          industry:industries (
+          industries (
             id,
             slug,
             name
@@ -43,17 +43,32 @@ export async function GET(
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    if (!userSource) {
+      return NextResponse.json({ error: "Source not found" }, { status: 404 });
+    }
+
+    const rssSource = Array.isArray(userSource.rss_sources) 
+      ? userSource.rss_sources[0] 
+      : userSource.rss_sources;
+    const industry = rssSource?.industries 
+      ? (Array.isArray(rssSource.industries) ? rssSource.industries[0] : rssSource.industries)
+      : null;
+
     return NextResponse.json({
       source: {
         id: userSource.id,
-        url: userSource.rss_source.url,
-        name: userSource.custom_name || userSource.rss_source.name,
-        originalName: userSource.rss_source.name,
+        url: rssSource?.url || "",
+        name: userSource.custom_name || rssSource?.name || "",
+        originalName: rssSource?.name || "",
         isActive: userSource.is_active,
-        industryId: userSource.rss_source.industry_id,
-        industry: userSource.rss_source.industry,
+        industryId: rssSource?.industry_id || null,
+        industry: industry ? {
+          id: industry.id,
+          slug: industry.slug,
+          name: industry.name,
+        } : null,
         createdAt: userSource.created_at,
-        rssSourceId: userSource.rss_source.id,
+        rssSourceId: rssSource?.id || "",
       },
     });
   } catch (error) {
@@ -112,12 +127,12 @@ export async function PATCH(
         custom_name,
         is_active,
         created_at,
-        rss_source:rss_sources (
+        rss_sources (
           id,
           url,
           name,
           industry_id,
-          industry:industries (
+          industries (
             id,
             slug,
             name
@@ -131,17 +146,32 @@ export async function PATCH(
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    if (!updated) {
+      return NextResponse.json({ error: "Source not found" }, { status: 404 });
+    }
+
+    const rssSource = Array.isArray(updated.rss_sources) 
+      ? updated.rss_sources[0] 
+      : updated.rss_sources;
+    const industry = rssSource?.industries 
+      ? (Array.isArray(rssSource.industries) ? rssSource.industries[0] : rssSource.industries)
+      : null;
+
     return NextResponse.json({
       source: {
         id: updated.id,
-        url: updated.rss_source.url,
-        name: updated.custom_name || updated.rss_source.name,
-        originalName: updated.rss_source.name,
+        url: rssSource?.url || "",
+        name: updated.custom_name || rssSource?.name || "",
+        originalName: rssSource?.name || "",
         isActive: updated.is_active,
-        industryId: updated.rss_source.industry_id,
-        industry: updated.rss_source.industry,
+        industryId: rssSource?.industry_id || null,
+        industry: industry ? {
+          id: industry.id,
+          slug: industry.slug,
+          name: industry.name,
+        } : null,
         createdAt: updated.created_at,
-        rssSourceId: updated.rss_source.id,
+        rssSourceId: rssSource?.id || "",
       },
     });
   } catch (error) {
