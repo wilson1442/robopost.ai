@@ -6,9 +6,18 @@ export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+  // Enhanced logging to help debug
   if (!supabaseUrl || !supabaseAnonKey) {
     console.error(
-      "[Middleware] Missing Supabase environment variables. NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY is not set."
+      "[Middleware] Missing Supabase environment variables.",
+      {
+        hasUrl: !!supabaseUrl,
+        hasKey: !!supabaseAnonKey,
+        urlLength: supabaseUrl?.length || 0,
+        keyLength: supabaseAnonKey?.length || 0,
+        // Log first few chars of URL to verify it's being read (not exposing full URL)
+        urlPreview: supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : 'undefined',
+      }
     );
     // Fail open - allow request to proceed without auth checks
     return NextResponse.next({ request });
