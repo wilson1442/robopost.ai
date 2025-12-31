@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export default function SignInForm() {
+function SignInFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/dashboard";
@@ -103,6 +103,21 @@ export default function SignInForm() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignInForm() {
+  return (
+    <Suspense fallback={
+      <div className="w-full max-w-md">
+        <div className="glass-effect rounded-xl p-8">
+          <h1 className="text-3xl font-bold text-white mb-2">Sign In</h1>
+          <p className="text-gray-400 mb-6">Loading...</p>
+        </div>
+      </div>
+    }>
+      <SignInFormContent />
+    </Suspense>
   );
 }
 
