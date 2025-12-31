@@ -6,9 +6,11 @@ import { Suspense } from "react";
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: { message?: string; redirect?: string };
+  searchParams: Promise<{ message?: string; redirect?: string }>;
 }) {
   await requireGuest();
+  
+  const params = await searchParams;
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
@@ -21,9 +23,9 @@ export default async function SignInPage({
         </div>
 
         <div className="glass-effect rounded-2xl p-8 shadow-xl">
-          {searchParams.message && (
+          {params.message && (
             <div className="mb-6 p-4 bg-primary-500/10 border border-primary-500/50 rounded-lg text-primary-300 text-sm">
-              {searchParams.message}
+              {params.message}
             </div>
           )}
           <Suspense fallback={<div className="text-gray-400">Loading...</div>}>
