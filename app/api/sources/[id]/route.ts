@@ -4,11 +4,12 @@ import { NextResponse } from "next/server";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth();
     const supabase = await createClient();
+    const { id } = await params;
 
     const { data: userSource, error } = await supabase
       .from("user_sources")
@@ -31,7 +32,7 @@ export async function GET(
         )
       `
       )
-      .eq("id", params.id)
+      .eq("id", id)
       .eq("user_id", user.id)
       .single();
 
@@ -65,11 +66,12 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth();
     const supabase = await createClient();
+    const { id } = await params;
 
     const body = await request.json();
     const { name, isActive } = body;
@@ -78,7 +80,7 @@ export async function PATCH(
     const { data: existingSource } = await supabase
       .from("user_sources")
       .select("id")
-      .eq("id", params.id)
+      .eq("id", id)
       .eq("user_id", user.id)
       .single();
 
@@ -103,7 +105,7 @@ export async function PATCH(
     const { data: updated, error } = await supabase
       .from("user_sources")
       .update(updates)
-      .eq("id", params.id)
+      .eq("id", id)
       .select(
         `
         id,
@@ -152,17 +154,18 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth();
     const supabase = await createClient();
+    const { id } = await params;
 
     // Verify the source belongs to the user
     const { data: existingSource } = await supabase
       .from("user_sources")
       .select("id")
-      .eq("id", params.id)
+      .eq("id", id)
       .eq("user_id", user.id)
       .single();
 
@@ -174,7 +177,7 @@ export async function DELETE(
     const { error } = await supabase
       .from("user_sources")
       .update({ is_active: false })
-      .eq("id", params.id);
+      .eq("id", id);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
