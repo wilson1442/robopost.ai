@@ -20,12 +20,12 @@ export async function GET(request: Request) {
         custom_name,
         is_active,
         created_at,
-        rss_source:rss_sources (
+        rss_sources (
           id,
           url,
           name,
           industry_id,
-          industry:industries (
+          industries (
             id,
             slug,
             name
@@ -42,17 +42,30 @@ export async function GET(request: Request) {
     }
 
     // Transform the data to flatten the structure
-    const sources = userSources?.map((us) => ({
-      id: us.id,
-      url: us.rss_source.url,
-      name: us.custom_name || us.rss_source.name,
-      originalName: us.rss_source.name,
-      isActive: us.is_active,
-      industryId: us.rss_source.industry_id,
-      industry: us.rss_source.industry,
-      createdAt: us.created_at,
-      rssSourceId: us.rss_source.id,
-    }));
+    const sources = userSources?.map((us: any) => {
+      const rssSource = Array.isArray(us.rss_sources) 
+        ? us.rss_sources[0] 
+        : us.rss_sources;
+      const industry = rssSource?.industries 
+        ? (Array.isArray(rssSource.industries) ? rssSource.industries[0] : rssSource.industries)
+        : null;
+      
+      return {
+        id: us.id,
+        url: rssSource?.url || "",
+        name: us.custom_name || rssSource?.name || "",
+        originalName: rssSource?.name || "",
+        isActive: us.is_active,
+        industryId: rssSource?.industry_id || null,
+        industry: industry ? {
+          id: industry.id,
+          slug: industry.slug,
+          name: industry.name,
+        } : null,
+        createdAt: us.created_at,
+        rssSourceId: rssSource?.id || "",
+      };
+    }).filter((s: any) => s.url);
 
     return NextResponse.json({ sources: sources || [] });
   } catch (error) {
@@ -145,12 +158,12 @@ export async function POST(request: Request) {
           custom_name,
           is_active,
           created_at,
-          rss_source:rss_sources (
+          rss_sources (
             id,
             url,
             name,
             industry_id,
-            industry:industries (
+            industries (
               id,
               slug,
               name
@@ -167,17 +180,32 @@ export async function POST(request: Request) {
         );
       }
 
+      if (!updated) {
+        return NextResponse.json({ error: "Source not found" }, { status: 404 });
+      }
+
+      const rssSource = Array.isArray(updated.rss_sources) 
+        ? updated.rss_sources[0] 
+        : updated.rss_sources;
+      const industry = rssSource?.industries 
+        ? (Array.isArray(rssSource.industries) ? rssSource.industries[0] : rssSource.industries)
+        : null;
+
       return NextResponse.json({
         source: {
           id: updated.id,
-          url: updated.rss_source.url,
-          name: updated.custom_name || updated.rss_source.name,
-          originalName: updated.rss_source.name,
+          url: rssSource?.url || "",
+          name: updated.custom_name || rssSource?.name || "",
+          originalName: rssSource?.name || "",
           isActive: updated.is_active,
-          industryId: updated.rss_source.industry_id,
-          industry: updated.rss_source.industry,
+          industryId: rssSource?.industry_id || null,
+          industry: industry ? {
+            id: industry.id,
+            slug: industry.slug,
+            name: industry.name,
+          } : null,
           createdAt: updated.created_at,
-          rssSourceId: updated.rss_source.id,
+          rssSourceId: rssSource?.id || "",
         },
       });
     }
@@ -197,12 +225,12 @@ export async function POST(request: Request) {
         custom_name,
         is_active,
         created_at,
-        rss_source:rss_sources (
+        rss_sources (
           id,
           url,
           name,
           industry_id,
-          industry:industries (
+          industries (
             id,
             slug,
             name
@@ -219,17 +247,32 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!userSource) {
+      return NextResponse.json({ error: "Failed to create source" }, { status: 500 });
+    }
+
+    const rssSource = Array.isArray(userSource.rss_sources) 
+      ? userSource.rss_sources[0] 
+      : userSource.rss_sources;
+    const industry = rssSource?.industries 
+      ? (Array.isArray(rssSource.industries) ? rssSource.industries[0] : rssSource.industries)
+      : null;
+
     return NextResponse.json({
       source: {
         id: userSource.id,
-        url: userSource.rss_source.url,
-        name: userSource.custom_name || userSource.rss_source.name,
-        originalName: userSource.rss_source.name,
+        url: rssSource?.url || "",
+        name: userSource.custom_name || rssSource?.name || "",
+        originalName: rssSource?.name || "",
         isActive: userSource.is_active,
-        industryId: userSource.rss_source.industry_id,
-        industry: userSource.rss_source.industry,
+        industryId: rssSource?.industry_id || null,
+        industry: industry ? {
+          id: industry.id,
+          slug: industry.slug,
+          name: industry.name,
+        } : null,
         createdAt: userSource.created_at,
-        rssSourceId: userSource.rss_source.id,
+        rssSourceId: rssSource?.id || "",
       },
     });
   } catch (error) {
