@@ -28,7 +28,7 @@ export async function requireAuth() {
 export async function requireGuest() {
   const user = await getUser();
   if (user) {
-    redirect("/");
+    redirect("/dashboard");
   }
 }
 
