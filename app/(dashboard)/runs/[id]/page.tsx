@@ -41,7 +41,7 @@ export default async function RunDetailsPage({
   // Fetch results for this run
   const { data: results, error: resultsError } = await supabase
     .from("agent_results")
-    .select("id, output_type, content, metadata, created_at")
+    .select("id, run_id, output_type, content, metadata, created_at")
     .eq("run_id", id)
     .order("created_at", { ascending: true });
 
