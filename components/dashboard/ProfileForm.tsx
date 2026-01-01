@@ -3,15 +3,11 @@
 import { useState, useEffect } from "react";
 import { User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
+import { UserProfile } from "@/types/database";
 
 interface ProfileFormProps {
   user: User;
-  profile: {
-    id: string;
-    industry_preference?: string | null;
-    created_at?: string;
-    updated_at?: string;
-  } | null;
+  profile: UserProfile | null;
 }
 
 export default function ProfileForm({ user, profile }: ProfileFormProps) {

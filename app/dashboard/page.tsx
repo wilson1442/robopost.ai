@@ -123,7 +123,34 @@ export default async function DashboardPage() {
       {/* Quick Actions */}
       <div className="glass-effect rounded-xl p-6">
         <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Link
+            href="/runs/new"
+            className="p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 hover:border-primary-500/50 transition-all"
+          >
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-accent-500/20 rounded-lg flex items-center justify-center">
+                <svg
+                  className="w-5 h-5 text-accent-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <p className="font-medium text-white">Trigger New Run</p>
+                <p className="text-sm text-gray-400">Start content generation</p>
+              </div>
+            </div>
+          </Link>
+
           <Link
             href="/sources/new"
             className="p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 hover:border-primary-500/50 transition-all"
@@ -156,9 +183,9 @@ export default async function DashboardPage() {
             className="p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 hover:border-primary-500/50 transition-all"
           >
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-accent-500/20 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
                 <svg
-                  className="w-5 h-5 text-accent-400"
+                  className="w-5 h-5 text-green-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -183,12 +210,21 @@ export default async function DashboardPage() {
       {/* Recent Activity */}
       {recentRuns && recentRuns.length > 0 && (
         <div className="glass-effect rounded-xl p-6">
-          <h2 className="text-xl font-semibold text-white mb-4">Recent Activity</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-white">Recent Activity</h2>
+            <Link
+              href="/runs"
+              className="text-sm text-primary-400 hover:text-primary-300 transition-colors"
+            >
+              View all runs →
+            </Link>
+          </div>
           <div className="space-y-3">
             {recentRuns.map((run) => (
-              <div
+              <Link
                 key={run.id}
-                className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10"
+                href={`/runs/${run.id}`}
+                className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 hover:border-primary-500/50 transition-all"
               >
                 <div className="flex items-center space-x-3">
                   <div
@@ -209,18 +245,33 @@ export default async function DashboardPage() {
                     </p>
                   </div>
                 </div>
-                <span
-                  className={`px-2 py-1 text-xs font-medium rounded ${
-                    run.status === "completed"
-                      ? "bg-green-500/20 text-green-400"
-                      : run.status === "failed"
-                      ? "bg-red-500/20 text-red-400"
-                      : "bg-yellow-500/20 text-yellow-400"
-                  }`}
-                >
-                  {run.status}
-                </span>
-              </div>
+                <div className="flex items-center space-x-2">
+                  <span
+                    className={`px-2 py-1 text-xs font-medium rounded ${
+                      run.status === "completed"
+                        ? "bg-green-500/20 text-green-400"
+                        : run.status === "failed"
+                        ? "bg-red-500/20 text-red-400"
+                        : "bg-yellow-500/20 text-yellow-400"
+                    }`}
+                  >
+                    {run.status}
+                  </span>
+                  <svg
+                    className="w-4 h-4 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </div>
+              </Link>
             ))}
           </div>
         </div>

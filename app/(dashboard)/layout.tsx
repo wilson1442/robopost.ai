@@ -30,6 +30,12 @@ export default async function DashboardLayout({
                   Dashboard
                 </Link>
                 <Link
+                  href="/runs"
+                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-300 hover:text-white border-b-2 border-transparent hover:border-primary-500 transition-colors"
+                >
+                  Runs
+                </Link>
+                <Link
                   href="/sources"
                   className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-300 hover:text-white border-b-2 border-transparent hover:border-primary-500 transition-colors"
                 >

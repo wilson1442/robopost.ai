@@ -2,27 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-
-interface Industry {
-  id: string;
-  slug: string;
-  name: string;
-  description?: string | null;
-}
+import { Industry, SourceFormData, SourceWithDetails } from "@/types/database";
 
 interface SourceFormProps {
-  source?: {
-    id: string;
-    url: string;
-    name: string;
-    isActive: boolean;
-    industryId?: string | null;
-  } | null;
-  onSubmit: (data: {
-    url: string;
-    name?: string;
-    industryId?: string;
-  }) => Promise<void>;
+  source?: Pick<SourceWithDetails, "id" | "url" | "name" | "isActive" | "industryId"> | null;
+  onSubmit: (data: SourceFormData) => Promise<void>;
   onCancel?: () => void;
 }
 
