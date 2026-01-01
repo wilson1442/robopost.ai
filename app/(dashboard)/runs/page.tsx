@@ -10,7 +10,7 @@ export default async function RunsPage() {
   // Get user's agent runs
   const { data: runs } = await supabase
     .from("agent_runs")
-    .select("id, status, triggered_at, completed_at, error_message, created_at")
+    .select("id, user_id, status, triggered_at, completed_at, error_message, created_at")
     .eq("user_id", user.id)
     .order("triggered_at", { ascending: false })
     .limit(50);

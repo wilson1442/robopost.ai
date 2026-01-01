@@ -25,7 +25,7 @@ export default async function DashboardPage() {
   // Get recent runs
   const { data: recentRuns } = await supabase
     .from("agent_runs")
-    .select("id, status, triggered_at, completed_at")
+    .select("id, user_id, status, triggered_at, completed_at")
     .eq("user_id", user.id)
     .order("triggered_at", { ascending: false })
     .limit(5);

@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     // Build query
     let query = supabase
       .from("agent_runs")
-      .select("id, status, industry_id, prompt_instructions, triggered_at, completed_at, error_message, created_at")
+      .select("id, user_id, status, industry_id, prompt_instructions, triggered_at, completed_at, error_message, created_at")
       .eq("user_id", user.id)
       .order("triggered_at", { ascending: false })
       .range(offset, offset + limit - 1);
