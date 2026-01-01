@@ -24,7 +24,8 @@ export default async function SourcesPage() {
         industries (
           id,
           slug,
-          name
+          name,
+          created_at
         )
       )
     `
@@ -49,6 +50,7 @@ export default async function SourcesPage() {
           id: industry.id,
           slug: industry.slug,
           name: industry.name,
+          created_at: industry.created_at,
         } : null,
         createdAt: us.created_at,
         rssSourceId: rssSource?.id || "",
