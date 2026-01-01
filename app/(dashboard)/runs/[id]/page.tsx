@@ -65,7 +65,7 @@ export default async function RunDetailsPage({
   // Fetch progress logs for this run
   const { data: progressLogs, error: progressError } = await supabase
     .from("run_progress_logs")
-    .select("id, message, status, created_at")
+    .select("id, run_id, message, status, created_at")
     .eq("run_id", id)
     .order("created_at", { ascending: true });
 

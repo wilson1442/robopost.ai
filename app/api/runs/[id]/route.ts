@@ -43,7 +43,7 @@ export async function GET(
     // Fetch results for this run
     const { data: results, error: resultsError } = await supabase
       .from("agent_results")
-      .select("id, output_type, content, metadata, created_at")
+      .select("id, run_id, output_type, content, metadata, created_at")
       .eq("run_id", id)
       .order("created_at", { ascending: true });
 
@@ -68,7 +68,7 @@ export async function GET(
     // Fetch progress logs for this run
     const { data: progressLogs, error: progressError } = await supabase
       .from("run_progress_logs")
-      .select("id, message, status, created_at")
+      .select("id, run_id, message, status, created_at")
       .eq("run_id", id)
       .order("created_at", { ascending: true });
 
