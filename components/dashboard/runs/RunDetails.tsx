@@ -102,11 +102,12 @@ export default function RunDetails({ run: initialRun }: RunDetailsProps) {
         id: data.id,
         output_type: data.output_type,
         contentLength: data.content?.length,
+        runId: run.id,
+        currentResultsCount: run.results?.length || 0
       });
 
-      setRun(prevRun => ({
-        ...prevRun,
-        results: [
+      setRun(prevRun => {
+        const newResults = [
           ...(prevRun.results || []),
           {
             id: data.id,
@@ -116,13 +117,47 @@ export default function RunDetails({ run: initialRun }: RunDetailsProps) {
             metadata: data.metadata,
             created_at: data.created_at,
           }
-        ],
-      }));
+        ];
+
+        console.log("[RunDetails] Updated results count:", newResults.length);
+        console.log("[RunDetails] New result added:", {
+          id: data.id,
+          output_type: data.output_type,
+          hasContent: !!data.content
+        });
+
+        return {
+          ...prevRun,
+          results: newResults,
+        };
+      });
     });
 
     eventSource.addEventListener("complete", (event) => {
       const data = JSON.parse(event.data);
       console.log("[RunDetails] SSE stream completed:", data);
+
+      // Fetch final results to ensure we have everything
+      fetch(`/api/runs/${run.id}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.run) {
+            console.log("[RunDetails] Final results fetch after completion:", {
+              resultsCount: data.run.results?.length || 0,
+              hasResults: !!data.run.results
+            });
+            setRun(prevRun => ({
+              ...prevRun,
+              results: data.run.results || [],
+              progressLogs: data.run.progressLogs || [],
+              status: data.run.status,
+              completed_at: data.run.completed_at,
+            }));
+          }
+        })
+        .catch(error => {
+          console.error("[RunDetails] Error fetching final results:", error);
+        });
 
       setIsStreaming(false);
       eventSource.close();
@@ -189,8 +224,23 @@ export default function RunDetails({ run: initialRun }: RunDetailsProps) {
       resultsCount: run.results?.length || 0,
       resultsByTypeKeys: Object.keys(resultsByType),
       resultsError: run.resultsError,
+      isStreaming,
+      streamError
     });
-  }, [run.id, run.status, run.results, run.resultsError, resultsByType]);
+
+    // Log each result individually for debugging
+    if (run.results && run.results.length > 0) {
+      run.results.forEach((result, index) => {
+        console.log(`[RunDetails] Result ${index}:`, {
+          id: result.id,
+          output_type: result.output_type,
+          contentLength: result.content?.length || 0,
+          hasContent: !!result.content,
+          created_at: result.created_at
+        });
+      });
+    }
+  }, [run.id, run.status, run.results, run.resultsError, resultsByType, isStreaming, streamError]);
 
   return (
     <div className="space-y-6">
