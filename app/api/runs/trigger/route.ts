@@ -140,8 +140,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Get n8n webhook URL from environment
-    // Try alternative env var name first (workaround for Vercel corruption)
-    const n8nWebhookUrl = process.env.ROBOPOST_N8N_WEBHOOK_URL || process.env.N8N_WEBHOOK_URL;
+    // Try alternative env var name first, trim to remove any trailing whitespace/newlines
+    const n8nWebhookUrl = (process.env.ROBOPOST_N8N_WEBHOOK_URL || process.env.N8N_WEBHOOK_URL)?.trim();
     if (!n8nWebhookUrl) {
       console.error("N8N_WEBHOOK_URL environment variable is not set");
       
