@@ -2,15 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/auth";
 import { createClient } from "@/lib/supabase/server";
 import { RunTriggerRequest, RunTriggerResponse, OutboundWebhookPayload } from "@/types/webhooks";
+import { generateHmacSignature } from "@/lib/webhooks/hmac";
 import { randomUUID } from "crypto";
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("[RunTrigger] Starting agent run trigger");
     const user = await requireAuth();
     const supabase = await createClient();
 
     // Parse and validate request body
     const body: RunTriggerRequest = await request.json();
+    console.log("[RunTrigger] Request body:", {
+      sourceIdsCount: body.sourceIds?.length || 0,
+      outputFormatsCount: body.outputFormats?.length || 0,
+      hasIndustryId: !!body.industryId,
+      destinationType: body.destination?.type,
+    });
 
     // Validate required fields
     if (!body.sourceIds || !Array.isArray(body.sourceIds) || body.sourceIds.length === 0) {
@@ -173,18 +181,45 @@ export async function POST(request: NextRequest) {
 
     // Send webhook to n8n
     try {
+      const payloadBody = JSON.stringify(webhookPayload);
+      const hmacSignature = generateHmacSignature(payloadBody, webhookSecret);
+      
+      console.log("[RunTrigger] Sending webhook to n8n:", {
+        url: n8nWebhookUrl,
+        runId,
+        payloadSize: payloadBody.length,
+        hasSources: webhookPayload.config.rssSources.length > 0,
+        hasSignature: !!hmacSignature,
+      });
+
       const webhookResponse = await fetch(n8nWebhookUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-n8n-signature": webhookSecret,
+          "x-n8n-signature": hmacSignature,
         },
-        body: JSON.stringify(webhookPayload),
+        body: payloadBody,
       });
 
       if (!webhookResponse.ok) {
-        throw new Error(`n8n webhook returned status ${webhookResponse.status}`);
+        let errorMessage = `n8n webhook returned status ${webhookResponse.status}`;
+        try {
+          const errorBody = await webhookResponse.text();
+          if (errorBody) {
+            errorMessage += `: ${errorBody.substring(0, 200)}`;
+          }
+        } catch {
+          // Ignore error body parsing errors
+        }
+        console.error("[RunTrigger] Webhook error response:", {
+          status: webhookResponse.status,
+          statusText: webhookResponse.statusText,
+          errorMessage,
+        });
+        throw new Error(errorMessage);
       }
+
+      console.log("[RunTrigger] Webhook sent successfully, updating status to processing");
 
       // Update run status to "processing" after successful webhook send
       await supabase
@@ -192,19 +227,32 @@ export async function POST(request: NextRequest) {
         .update({ status: "processing" })
         .eq("id", runId);
     } catch (webhookError) {
-      console.error("Error sending webhook to n8n:", webhookError);
+      const errorMessage = webhookError instanceof Error 
+        ? webhookError.message 
+        : "Failed to send webhook to n8n";
+      
+      console.error("[RunTrigger] Error sending webhook to n8n:", {
+        error: webhookError,
+        errorMessage,
+        runId,
+        webhookUrl: n8nWebhookUrl,
+        hasSecret: !!webhookSecret,
+      });
       
       // Update run status to failed
       await supabase
         .from("agent_runs")
         .update({ 
           status: "failed",
-          error_message: webhookError instanceof Error ? webhookError.message : "Failed to send webhook to n8n"
+          error_message: errorMessage
         })
         .eq("id", runId);
 
       return NextResponse.json(
-        { error: "Failed to trigger agent run" },
+        { 
+          error: "Failed to trigger agent run",
+          details: errorMessage 
+        },
         { status: 500 }
       );
     }

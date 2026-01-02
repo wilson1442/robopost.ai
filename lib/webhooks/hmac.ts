@@ -1,6 +1,23 @@
 import crypto from "crypto";
 
 /**
+ * Generate HMAC signature for outbound webhook requests
+ * 
+ * @param body - Request body as string
+ * @param secret - Shared secret (N8N_WEBHOOK_SECRET)
+ * @returns HMAC-SHA256 signature as hex string
+ */
+export function generateHmacSignature(
+  body: string,
+  secret: string
+): string {
+  return crypto
+    .createHmac("sha256", secret)
+    .update(body, "utf8")
+    .digest("hex");
+}
+
+/**
  * Verify HMAC signature for inbound webhook requests
  * 
  * @param body - Raw request body as string
