@@ -2,27 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-
-interface Industry {
-  id: string;
-  slug: string;
-  name: string;
-}
-
-interface Source {
-  id: string;
-  url: string;
-  name: string;
-  originalName: string;
-  isActive: boolean;
-  industryId?: string | null;
-  industry?: Industry | null;
-  createdAt: string;
-  rssSourceId: string;
-}
+import { SourceWithDetails } from "@/types/database";
 
 interface SourceListProps {
-  sources: Source[];
+  sources: SourceWithDetails[];
   onToggleActive?: (id: string, isActive: boolean) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
 }

@@ -2,27 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-
-interface Industry {
-  id: string;
-  slug: string;
-  name: string;
-  description?: string | null;
-}
+import { Industry, SourceFormData, SourceWithDetails } from "@/types/database";
 
 interface SourceFormProps {
-  source?: {
-    id: string;
-    url: string;
-    name: string;
-    isActive: boolean;
-    industryId?: string | null;
-  } | null;
-  onSubmit: (data: {
-    url: string;
-    name?: string;
-    industryId?: string;
-  }) => Promise<void>;
+  source?: Pick<SourceWithDetails, "id" | "url" | "name" | "isActive" | "industryId"> | null;
+  onSubmit: (data: SourceFormData) => Promise<void>;
   onCancel?: () => void;
 }
 
@@ -44,9 +28,14 @@ export default function SourceForm({ source, onSubmit, onCancel }: SourceFormPro
         const data = await response.json();
         if (response.ok) {
           setIndustries(data.industries || []);
+          console.log("[SourceForm] Loaded industries:", data.industries?.length || 0);
+        } else {
+          console.error("[SourceForm] Industries API error:", data.error);
+          setError(`Failed to load industries: ${data.error || "Unknown error"}`);
         }
       } catch (err) {
-        console.error("Failed to fetch industries:", err);
+        console.error("[SourceForm] Failed to fetch industries:", err);
+        setError("Failed to load industries. Please refresh the page.");
       } finally {
         setFetchingIndustries(false);
       }

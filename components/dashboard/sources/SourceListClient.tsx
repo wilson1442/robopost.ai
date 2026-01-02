@@ -2,27 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import SourceList from "./SourceList";
-
-interface Industry {
-  id: string;
-  slug: string;
-  name: string;
-}
-
-interface Source {
-  id: string;
-  url: string;
-  name: string;
-  originalName: string;
-  isActive: boolean;
-  industryId?: string | null;
-  industry?: Industry | null;
-  createdAt: string;
-  rssSourceId: string;
-}
+import { SourceWithDetails } from "@/types/database";
 
 interface SourceListClientProps {
-  sources: Source[];
+  sources: SourceWithDetails[];
 }
 
 export default function SourceListClient({ sources }: SourceListClientProps) {
