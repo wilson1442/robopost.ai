@@ -197,7 +197,7 @@ export default function RunDetails({ run: initialRun }: RunDetailsProps) {
           <div className="space-y-3">
             {run.progressLogs && run.progressLogs.length > 0 ? (
               run.progressLogs.map((log) => {
-                const getLogColor = (status?: string) => {
+                const getLogColor = (status?: string | null) => {
                   switch (status) {
                     case "success":
                       return "text-green-400 border-green-500/50";
