@@ -168,7 +168,8 @@ export async function POST(request: Request) {
             industries (
               id,
               slug,
-              name
+              name,
+              created_at
             )
           )
         `
