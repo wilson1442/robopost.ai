@@ -153,6 +153,12 @@ export default function RunDetails({ run: initialRun }: RunDetailsProps) {
               status: data.run.status,
               completed_at: data.run.completed_at,
             }));
+
+            // Auto-refresh the page after a short delay to ensure UI updates
+            setTimeout(() => {
+              console.log("[RunDetails] Auto-refreshing page to ensure all data is displayed");
+              window.location.reload();
+            }, 1000);
           }
         })
         .catch(error => {
@@ -313,6 +319,53 @@ export default function RunDetails({ run: initialRun }: RunDetailsProps) {
         )}
       </div>
 
+      {/* Results Error Display */}
+      {run.resultsError && (
+        <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-6">
+          <div className="flex items-start space-x-3">
+            <svg className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-red-400 mb-2">Error Loading Results</h3>
+              <p className="text-sm text-red-300 mb-2">{run.resultsError.message}</p>
+              {run.resultsError.code && (
+                <p className="text-xs text-red-400/70">Error Code: {run.resultsError.code}</p>
+              )}
+              <p className="text-xs text-red-400/70 mt-2">
+                Please check the browser console for more details or try refreshing the page.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Results */}
+      {run.results && run.results.length > 0 ? (
+        <div className="space-y-6">
+          <h3 className="text-xl font-semibold text-white">Results</h3>
+
+          {Object.entries(resultsByType).map(([outputType, results]) => (
+            <div key={outputType} className="space-y-4">
+              <h4 className="text-lg font-medium text-gray-300 capitalize">
+                {outputType} ({results.length})
+              </h4>
+              {results.map((result) => (
+                <ResultCard key={result.id} result={result} />
+              ))}
+            </div>
+          ))}
+        </div>
+      ) : !run.resultsError ? (
+        <div className="bg-white/5 border border-white/10 rounded-lg p-8 text-center">
+          <p className="text-gray-400">
+            {run.status === "pending" || run.status === "processing"
+              ? "Results are being generated..."
+              : "No results available"}
+          </p>
+        </div>
+      ) : null}
+
       {/* Progress Logs */}
       {(run.progressLogs && run.progressLogs.length > 0) || (run.status === "pending" || run.status === "processing") ? (
         <div className="bg-white/5 border border-white/10 rounded-lg p-6">
@@ -389,53 +442,6 @@ export default function RunDetails({ run: initialRun }: RunDetailsProps) {
               </div>
             )}
           </div>
-        </div>
-      ) : null}
-
-      {/* Results Error Display */}
-      {run.resultsError && (
-        <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-6">
-          <div className="flex items-start space-x-3">
-            <svg className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-red-400 mb-2">Error Loading Results</h3>
-              <p className="text-sm text-red-300 mb-2">{run.resultsError.message}</p>
-              {run.resultsError.code && (
-                <p className="text-xs text-red-400/70">Error Code: {run.resultsError.code}</p>
-              )}
-              <p className="text-xs text-red-400/70 mt-2">
-                Please check the browser console for more details or try refreshing the page.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Results */}
-      {run.results && run.results.length > 0 ? (
-        <div className="space-y-6">
-          <h3 className="text-xl font-semibold text-white">Results</h3>
-          
-          {Object.entries(resultsByType).map(([outputType, results]) => (
-            <div key={outputType} className="space-y-4">
-              <h4 className="text-lg font-medium text-gray-300 capitalize">
-                {outputType} ({results.length})
-              </h4>
-              {results.map((result) => (
-                <ResultCard key={result.id} result={result} />
-              ))}
-            </div>
-          ))}
-        </div>
-      ) : !run.resultsError ? (
-        <div className="bg-white/5 border border-white/10 rounded-lg p-8 text-center">
-          <p className="text-gray-400">
-            {run.status === "pending" || run.status === "processing"
-              ? "Results are being generated..."
-              : "No results available"}
-          </p>
         </div>
       ) : null}
     </div>
