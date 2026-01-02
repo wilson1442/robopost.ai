@@ -3,31 +3,26 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(request: NextRequest) {
   console.log("[TestWebhook] Testing webhook connectivity...");
 
-  // #region agent log
-  const debugPayload = {
-    location: 'app/api/test-webhook/route.ts:8',
-    message: 'Environment inspection',
-    data: {
-      N8N_WEBHOOK_URL: process.env.N8N_WEBHOOK_URL,
-      N8N_WEBHOOK_URL_length: process.env.N8N_WEBHOOK_URL?.length,
-      N8N_WEBHOOK_URL_first20: process.env.N8N_WEBHOOK_URL?.substring(0, 20),
-      N8N_WEBHOOK_SECRET_exists: !!process.env.N8N_WEBHOOK_SECRET,
-      NODE_ENV: process.env.NODE_ENV,
-      VERCEL_ENV: process.env.VERCEL_ENV,
-      VERCEL_GIT_COMMIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA?.substring(0, 7),
-      VERCEL_GIT_COMMIT_REF: process.env.VERCEL_GIT_COMMIT_REF,
-      allEnvKeys: Object.keys(process.env).filter(k => k.includes('N8N') || k.includes('WEBHOOK') || k.includes('VERCEL')),
-    },
-    timestamp: Date.now(),
-    sessionId: 'debug-session',
-    runId: 'env-debug',
-    hypothesisId: 'A-B-C-D-E'
-  };
-  fetch('http://127.0.0.1:7242/ingest/7fc0794e-0f8c-4c87-bba6-bdd60340a322', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(debugPayload)
-  }).catch(() => {});
+  // #region agent log - comprehensive env debugging
+  // Get ALL env keys that might be related
+  const allEnvKeys = Object.keys(process.env);
+  const webhookRelatedKeys = allEnvKeys.filter(k => 
+    k.toUpperCase().includes('N8N') || 
+    k.toUpperCase().includes('WEBHOOK') || 
+    k.toUpperCase().includes('URL')
+  );
+  const webhookRelatedValues: Record<string, string> = {};
+  webhookRelatedKeys.forEach(k => {
+    webhookRelatedValues[k] = process.env[k]?.substring(0, 50) || 'undefined';
+  });
+  
+  // Check for hidden characters in the env var name
+  const exactN8NKey = allEnvKeys.find(k => k === 'N8N_WEBHOOK_URL');
+  const similarN8NKeys = allEnvKeys.filter(k => k.includes('N8N') || k.includes('WEBHOOK'));
+  
+  console.log('[DEBUG] All webhook-related env vars:', webhookRelatedValues);
+  console.log('[DEBUG] Exact N8N_WEBHOOK_URL key found:', exactN8NKey);
+  console.log('[DEBUG] Similar keys:', similarN8NKeys);
   // #endregion
 
   const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
@@ -120,6 +115,20 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error("[TestWebhook] Error:", error);
+    
+    // #region agent log - comprehensive debug in error response
+    const allEnvKeys = Object.keys(process.env);
+    const webhookKeys = allEnvKeys.filter(k => 
+      k.toUpperCase().includes('N8N') || 
+      k.toUpperCase().includes('WEBHOOK') || 
+      k.toUpperCase().includes('EARLY')
+    );
+    const webhookVars: Record<string, string | undefined> = {};
+    webhookKeys.forEach(k => {
+      webhookVars[k] = process.env[k]?.substring(0, 60);
+    });
+    // #endregion
+    
     return NextResponse.json(
       {
         error: "Webhook test failed",
@@ -133,8 +142,12 @@ export async function GET(request: NextRequest) {
           vercelEnv: process.env.VERCEL_ENV,
           vercelGitRef: process.env.VERCEL_GIT_COMMIT_REF,
           vercelGitSha: process.env.VERCEL_GIT_COMMIT_SHA?.substring(0, 7),
+          vercelProjectId: process.env.VERCEL_PROJECT_ID,
           nodeEnv: process.env.NODE_ENV,
           buildTime: new Date().toISOString(),
+          allWebhookEnvVars: webhookVars,
+          allWebhookKeys: webhookKeys,
+          totalEnvVarCount: allEnvKeys.length,
         }
         // #endregion
       },
