@@ -25,7 +25,8 @@ export async function GET(request: NextRequest) {
   console.log('[DEBUG] Similar keys:', similarN8NKeys);
   // #endregion
 
-  const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
+  // Try alternative env var name first (workaround for Vercel corruption)
+  const n8nWebhookUrl = process.env.ROBOPOST_N8N_WEBHOOK_URL || process.env.N8N_WEBHOOK_URL;
 
   if (!n8nWebhookUrl) {
     return NextResponse.json(
@@ -121,7 +122,8 @@ export async function GET(request: NextRequest) {
     const webhookKeys = allEnvKeys.filter(k => 
       k.toUpperCase().includes('N8N') || 
       k.toUpperCase().includes('WEBHOOK') || 
-      k.toUpperCase().includes('EARLY')
+      k.toUpperCase().includes('EARLY') ||
+      k.toUpperCase().includes('ROBOPOST')
     );
     const webhookVars: Record<string, string | undefined> = {};
     webhookKeys.forEach(k => {
