@@ -8,7 +8,7 @@ export default async function SourcesPage() {
   const supabase = await createClient();
 
   // Get user's sources with RSS source details
-  const { data: userSources } = await supabase
+  const { data: userSources, error: sourcesError } = await supabase
     .from("user_sources")
     .select(
       `
@@ -33,11 +33,20 @@ export default async function SourcesPage() {
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
+  if (sourcesError) {
+    console.error("[SourcesPage] Error fetching sources:", sourcesError);
+  }
+
   // Transform the data to flatten the structure
   const sources =
     userSources?.map((us: any) => {
       const rssSource = us.rss_sources;
       const industry = rssSource?.industries;
+      
+      // Log if rssSource is missing
+      if (!rssSource) {
+        console.warn("[SourcesPage] Missing rss_source for user_source:", us.id);
+      }
       
       return {
         id: us.id,
@@ -55,7 +64,20 @@ export default async function SourcesPage() {
         createdAt: us.created_at,
         rssSourceId: rssSource?.id || "",
       };
-    }).filter((s: any) => s.url) || [];
+    }).filter((s: any) => {
+      // More lenient filtering - only filter if URL is truly missing
+      const hasUrl = s.url && s.url.trim() !== "";
+      if (!hasUrl) {
+        console.warn("[SourcesPage] Filtering out source without URL:", s.id);
+      }
+      return hasUrl;
+    }) || [];
+
+  console.log("[SourcesPage] Loaded sources:", {
+    userSourcesCount: userSources?.length || 0,
+    transformedSourcesCount: sources.length,
+    sources: sources.map(s => ({ id: s.id, url: s.url, name: s.name }))
+  });
 
   return (
     <div className="space-y-8">

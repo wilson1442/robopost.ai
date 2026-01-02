@@ -28,9 +28,14 @@ export default function SourceForm({ source, onSubmit, onCancel }: SourceFormPro
         const data = await response.json();
         if (response.ok) {
           setIndustries(data.industries || []);
+          console.log("[SourceForm] Loaded industries:", data.industries?.length || 0);
+        } else {
+          console.error("[SourceForm] Industries API error:", data.error);
+          setError(`Failed to load industries: ${data.error || "Unknown error"}`);
         }
       } catch (err) {
-        console.error("Failed to fetch industries:", err);
+        console.error("[SourceForm] Failed to fetch industries:", err);
+        setError("Failed to load industries. Please refresh the page.");
       } finally {
         setFetchingIndustries(false);
       }
