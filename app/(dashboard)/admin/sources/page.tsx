@@ -30,6 +30,14 @@ export default async function AdminSourcesPage() {
     console.error("[AdminSourcesPage] Error fetching sources:", error);
   }
 
+  // Transform sources to normalize industries (Supabase returns as array)
+  const transformedSources = (sources || []).map((source: any) => ({
+    ...source,
+    industries: Array.isArray(source.industries) 
+      ? source.industries[0] || null 
+      : source.industries || null,
+  }));
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -82,7 +90,7 @@ export default async function AdminSourcesPage() {
       </div>
 
       <div className="glass-effect rounded-xl p-6">
-        <AdminSourcesList sources={sources || []} />
+        <AdminSourcesList sources={transformedSources} />
       </div>
     </div>
   );

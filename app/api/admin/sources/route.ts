@@ -29,7 +29,15 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ sources: sources || [] });
+    // Transform sources to normalize industries (Supabase returns as array)
+    const transformedSources = (sources || []).map((source: any) => ({
+      ...source,
+      industries: Array.isArray(source.industries) 
+        ? source.industries[0] || null 
+        : source.industries || null,
+    }));
+
+    return NextResponse.json({ sources: transformedSources });
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to fetch sources" },

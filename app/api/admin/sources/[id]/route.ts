@@ -37,7 +37,15 @@ export async function GET(
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ source });
+    // Normalize industries (Supabase returns as array)
+    const normalizedSource = {
+      ...source,
+      industries: Array.isArray(source.industries) 
+        ? source.industries[0] || null 
+        : source.industries || null,
+    };
+
+    return NextResponse.json({ source: normalizedSource });
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to fetch source" },
