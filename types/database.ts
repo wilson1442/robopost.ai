@@ -19,7 +19,26 @@ export interface UserProfile {
   id: string; // UUID, references auth.users(id)
   created_at: string; // TIMESTAMPTZ
   updated_at: string; // TIMESTAMPTZ
-  industry_preference?: string | null; // TEXT
+  industry_preference?: string | null; // TEXT (deprecated, use industry_preference_id)
+  industry_preference_id?: string | null; // UUID, references industries(id)
+  industry_preference_locked?: boolean; // BOOLEAN
+}
+
+/**
+ * User Social Account Table
+ * Matches: user_social_accounts table
+ */
+export interface UserSocialAccount {
+  id: string; // UUID
+  user_id: string; // UUID, references auth.users(id)
+  platform: "facebook" | "twitter" | "linkedin" | "instagram" | "youtube" | "tiktok" | "pinterest" | "reddit";
+  account_url?: string | null; // TEXT
+  oauth_token?: string | null; // TEXT (encrypted)
+  oauth_token_secret?: string | null; // TEXT (encrypted, for OAuth 1.0a)
+  oauth_refresh_token?: string | null; // TEXT (encrypted, for OAuth 2.0)
+  is_active: boolean; // BOOLEAN
+  created_at: string; // TIMESTAMPTZ
+  updated_at: string; // TIMESTAMPTZ
 }
 
 /**

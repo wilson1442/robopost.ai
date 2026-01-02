@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
-import { UserProfile } from "@/types/database";
+import { UserProfile, Industry } from "@/types/database";
+import SocialAccountsSection from "./SocialAccountsSection";
 
 interface ProfileFormProps {
   user: User;
@@ -13,12 +14,26 @@ interface ProfileFormProps {
 export default function ProfileForm({ user, profile }: ProfileFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState(user.email || "");
-  const [industryPreference, setIndustryPreference] = useState(
-    profile?.industry_preference || ""
+  const [industryPreferenceId, setIndustryPreferenceId] = useState(
+    profile?.industry_preference_id || ""
   );
+  const [industries, setIndustries] = useState<Industry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const isLocked = profile?.industry_preference_locked || false;
+
+  useEffect(() => {
+    // Fetch industries
+    fetch("/api/industries")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.industries) {
+          setIndustries(data.industries);
+        }
+      })
+      .catch((err) => console.error("Failed to fetch industries:", err));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +48,7 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          industry_preference: industryPreference || null,
+          industry_preference_id: industryPreferenceId || null,
         }),
       });
 
@@ -84,23 +99,41 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
 
       <div>
         <label
-          htmlFor="industry_preference"
-          className="block text-sm font-medium text-gray-300 mb-2"
+          htmlFor="industry_preference_id"
+          className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2"
         >
           Industry Preference
+          {isLocked && (
+            <span className="inline-flex items-center gap-1 text-xs text-yellow-400">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+              </svg>
+              Locked
+            </span>
+          )}
         </label>
-        <input
-          id="industry_preference"
-          type="text"
-          value={industryPreference}
-          onChange={(e) => setIndustryPreference(e.target.value)}
-          placeholder="e.g., Technology, Finance, Healthcare"
-          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-        />
+        <select
+          id="industry_preference_id"
+          value={industryPreferenceId}
+          onChange={(e) => setIndustryPreferenceId(e.target.value)}
+          disabled={isLocked}
+          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <option value="">Select an industry...</option>
+          {industries.map((industry) => (
+            <option key={industry.id} value={industry.id}>
+              {industry.name}
+            </option>
+          ))}
+        </select>
         <p className="mt-1 text-xs text-gray-500">
-          Optional: Specify your primary industry to get better content recommendations.
+          {isLocked
+            ? "Your industry preference is locked and cannot be changed. Contact support if you need to update it."
+            : "Select your primary industry to get better content recommendations. This cannot be changed after selection."}
         </p>
       </div>
+
+      <SocialAccountsSection />
 
       <div className="pt-4 border-t border-white/10">
         <div className="grid grid-cols-2 gap-4 text-sm">

@@ -1,37 +1,36 @@
 import { requireAuth } from "@/lib/auth/auth";
 import { createClient } from "@/lib/supabase/server";
+import { isAdmin } from "@/lib/auth/admin";
 import RunList from "@/components/dashboard/runs/RunList";
 import Link from "next/link";
 
 export default async function RunsPage() {
   const user = await requireAuth();
   const supabase = await createClient();
+  const admin = isAdmin(user);
 
-  // Get user's agent runs
-  const { data: runs } = await supabase
+  // Build query - admins see all runs, regular users see only their own
+  let runsQuery = supabase
     .from("agent_runs")
     .select("id, user_id, status, triggered_at, completed_at, error_message, created_at")
-    .eq("user_id", user.id)
     .order("triggered_at", { ascending: false })
     .limit(50);
 
-  // Get stats
+  if (!admin) {
+    runsQuery = runsQuery.eq("user_id", user.id);
+  }
+
+  const { data: runs } = await runsQuery;
+
+  // Get stats - admins see all, regular users see only their own
+  const statsQuery = admin
+    ? supabase.from("agent_runs")
+    : supabase.from("agent_runs").eq("user_id", user.id);
+
   const [completedCount, failedCount, pendingCount] = await Promise.all([
-    supabase
-      .from("agent_runs")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("status", "completed"),
-    supabase
-      .from("agent_runs")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("status", "failed"),
-    supabase
-      .from("agent_runs")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .in("status", ["pending", "processing"]),
+    statsQuery.select("id", { count: "exact", head: true }).eq("status", "completed"),
+    statsQuery.select("id", { count: "exact", head: true }).eq("status", "failed"),
+    statsQuery.select("id", { count: "exact", head: true }).in("status", ["pending", "processing"]),
   ]);
 
   const totalRuns = runs?.length || 0;
@@ -91,7 +90,7 @@ export default async function RunsPage() {
 
       {/* Runs List */}
       <div className="glass-effect rounded-xl p-6">
-        <RunList runs={runs || []} />
+        <RunList runs={runs || []} showUser={admin} />
       </div>
     </div>
   );

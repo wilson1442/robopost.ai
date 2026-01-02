@@ -72,10 +72,12 @@ export async function middleware(request: NextRequest) {
 
   try {
     // Protect dashboard routes
-    const protectedPaths = ["/admin", "/sources", "/dashboard"];
+    const protectedPaths = ["/admin", "/sources", "/dashboard", "/runs"];
     const isProtectedPath = protectedPaths.some((path) =>
       request.nextUrl.pathname.startsWith(path)
     );
+    const isApiRoute = request.nextUrl.pathname.startsWith("/api");
+    const isProfilePage = request.nextUrl.pathname === "/profile" || request.nextUrl.pathname.startsWith("/dashboard/profile");
 
     if (isProtectedPath && !user) {
       try {
@@ -87,6 +89,41 @@ export async function middleware(request: NextRequest) {
         console.error("[Middleware] Error creating redirect URL:", error);
         // If redirect fails, allow request to proceed
         return NextResponse.next({ request });
+      }
+    }
+
+    // Check for industry preference requirement (skip API routes and profile page)
+    if (user && isProtectedPath && !isApiRoute && !isProfilePage) {
+      try {
+        // Check if user has industry preference
+        // We'll do a lightweight check here - full check happens in layout
+        // This is just to redirect to profile if needed
+        const supabaseForCheck = createServerClient(supabaseUrl, supabaseAnonKey, {
+          cookies: {
+            getAll() {
+              return request.cookies.getAll();
+            },
+            setAll(cookiesToSet) {
+              // Don't set cookies in middleware check
+            },
+          },
+        });
+
+        const { data: profile } = await supabaseForCheck
+          .from("user_profiles")
+          .select("industry_preference_id")
+          .eq("id", user.id)
+          .single();
+
+        if (!profile?.industry_preference_id) {
+          const url = request.nextUrl.clone();
+          url.pathname = "/profile";
+          url.searchParams.set("require_industry", "true");
+          return NextResponse.redirect(url);
+        }
+      } catch (error) {
+        // If check fails, allow request to proceed (fail open)
+        console.error("[Middleware] Error checking industry preference:", error);
       }
     }
 
