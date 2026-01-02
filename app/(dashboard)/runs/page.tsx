@@ -23,14 +23,28 @@ export default async function RunsPage() {
   const { data: runs } = await runsQuery;
 
   // Get stats - admins see all, regular users see only their own
-  const statsQuery = admin
-    ? supabase.from("agent_runs")
-    : supabase.from("agent_runs").eq("user_id", user.id);
-
   const [completedCount, failedCount, pendingCount] = await Promise.all([
-    statsQuery.select("id", { count: "exact", head: true }).eq("status", "completed"),
-    statsQuery.select("id", { count: "exact", head: true }).eq("status", "failed"),
-    statsQuery.select("id", { count: "exact", head: true }).in("status", ["pending", "processing"]),
+    (async () => {
+      let query = supabase.from("agent_runs").select("id", { count: "exact", head: true });
+      if (!admin) {
+        query = query.eq("user_id", user.id);
+      }
+      return query.eq("status", "completed");
+    })(),
+    (async () => {
+      let query = supabase.from("agent_runs").select("id", { count: "exact", head: true });
+      if (!admin) {
+        query = query.eq("user_id", user.id);
+      }
+      return query.eq("status", "failed");
+    })(),
+    (async () => {
+      let query = supabase.from("agent_runs").select("id", { count: "exact", head: true });
+      if (!admin) {
+        query = query.eq("user_id", user.id);
+      }
+      return query.in("status", ["pending", "processing"]);
+    })(),
   ]);
 
   const totalRuns = runs?.length || 0;
