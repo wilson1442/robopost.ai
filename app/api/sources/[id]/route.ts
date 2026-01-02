@@ -27,7 +27,8 @@ export async function GET(
           industries (
             id,
             slug,
-            name
+            name,
+            created_at
           )
         )
       `
@@ -66,6 +67,7 @@ export async function GET(
           id: industry.id,
           slug: industry.slug,
           name: industry.name,
+          created_at: industry.created_at,
         } : null,
         createdAt: userSource.created_at,
         rssSourceId: rssSource?.id || "",
@@ -135,7 +137,8 @@ export async function PATCH(
           industries (
             id,
             slug,
-            name
+            name,
+            created_at
           )
         )
       `
@@ -169,6 +172,7 @@ export async function PATCH(
           id: industry.id,
           slug: industry.slug,
           name: industry.name,
+          created_at: industry.created_at,
         } : null,
         createdAt: updated.created_at,
         rssSourceId: rssSource?.id || "",
