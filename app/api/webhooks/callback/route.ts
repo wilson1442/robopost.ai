@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Verify HMAC signature
-      const isValid = verifyHmacSignature(body, signature!, webhookSecret);
+      const isValid = verifyHmacSignature(body, signature!, webhookSecret!);
       if (!isValid) {
         console.error("Invalid HMAC signature");
         return NextResponse.json(
