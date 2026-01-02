@@ -102,8 +102,10 @@ export async function POST(request: NextRequest) {
       }));
 
     // Get base URL for streaming endpoint
+    // Priority: NEXT_PUBLIC_APP_URL > Production domain > VERCEL_URL > localhost
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
-                    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+                    (process.env.NODE_ENV === 'production' ? 'https://robopost.ai' :
+                     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'));
     const streamingUrl = `${baseUrl}/api/runs/${runId}/stream`;
 
     // Construct webhook payload
