@@ -237,7 +237,9 @@ export async function POST(request: NextRequest) {
         resultsArray = [{
           outputType: outputType,
           content: resultsValue as string,
-          metadata: {}
+          metadata: {
+            sources: []
+          }
         }];
       }
     }
@@ -265,7 +267,7 @@ export async function POST(request: NextRequest) {
           run_id: payload.runId,
           output_type: result.outputType,
           content: result.content || "",
-          metadata: result.metadata || {},
+          metadata: result.metadata || { sources: [] },
         };
         
         // #region agent log
