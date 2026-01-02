@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Version marker to verify code is being deployed
+const CODE_VERSION = "v3-debug-2026-01-02-13-25";
+
 export async function GET(request: NextRequest) {
   console.log("[TestWebhook] Testing webhook connectivity...");
 
@@ -150,6 +153,11 @@ export async function GET(request: NextRequest) {
           allWebhookEnvVars: webhookVars,
           allWebhookKeys: webhookKeys,
           totalEnvVarCount: allEnvKeys.length,
+          // Show ALL env var keys to debug Vercel injection issue
+          allEnvKeysSorted: allEnvKeys.sort().join(','),
+          hasDebugTestVar: allEnvKeys.includes('DEBUG_TEST_VAR'),
+          hasRobopostVar: allEnvKeys.includes('ROBOPOST_N8N_WEBHOOK_URL'),
+          codeVersion: CODE_VERSION,
         }
         // #endregion
       },
