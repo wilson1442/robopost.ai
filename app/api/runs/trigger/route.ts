@@ -139,9 +139,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get n8n webhook URL from environment
-    // Try alternative env var name first, trim to remove any trailing whitespace/newlines
-    const n8nWebhookUrl = (process.env.ROBOPOST_N8N_WEBHOOK_URL || process.env.N8N_WEBHOOK_URL)?.trim();
+    // Get n8n webhook URL from environment (trim to remove any trailing whitespace)
+    const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL?.trim();
     if (!n8nWebhookUrl) {
       console.error("N8N_WEBHOOK_URL environment variable is not set");
       
@@ -184,33 +183,14 @@ export async function POST(request: NextRequest) {
     try {
       const payloadBody = JSON.stringify(webhookPayload);
       const hmacSignature = generateHmacSignature(payloadBody, webhookSecret);
-
-      console.log("[RunTrigger] Preparing webhook call:", {
+      
+      console.log("[RunTrigger] Sending webhook to n8n:", {
         url: n8nWebhookUrl,
         runId,
         payloadSize: payloadBody.length,
         hasSources: webhookPayload.config.rssSources.length > 0,
-        hasSignature: !!hmacSignature,
-        webhookPayload: JSON.stringify(webhookPayload, null, 2),
       });
 
-      // Test basic connectivity first
-      console.log("[RunTrigger] Testing basic connectivity to webhook URL...");
-      try {
-        const testResponse = await fetch(n8nWebhookUrl, {
-          method: "HEAD", // Use HEAD to test connectivity without sending data
-          timeout: 5000, // 5 second timeout
-        } as any);
-        console.log("[RunTrigger] HEAD request result:", {
-          status: testResponse.status,
-          statusText: testResponse.statusText,
-          headers: Object.fromEntries(testResponse.headers.entries()),
-        });
-      } catch (connectError) {
-        console.error("[RunTrigger] HEAD request failed:", connectError);
-      }
-
-      console.log("[RunTrigger] Sending actual webhook payload...");
       const webhookResponse = await fetch(n8nWebhookUrl, {
         method: "POST",
         headers: {
@@ -220,38 +200,22 @@ export async function POST(request: NextRequest) {
         body: payloadBody,
       });
 
-      console.log("[RunTrigger] Webhook response received:", {
-        status: webhookResponse.status,
-        statusText: webhookResponse.statusText,
-        headers: Object.fromEntries(webhookResponse.headers.entries()),
-      });
-
       if (!webhookResponse.ok) {
         let errorMessage = `n8n webhook returned status ${webhookResponse.status}`;
         try {
           const errorBody = await webhookResponse.text();
-          console.log("[RunTrigger] Full error response body:", errorBody);
           if (errorBody) {
-            errorMessage += `: ${errorBody.substring(0, 500)}`; // Increased limit
+            errorMessage += `: ${errorBody.substring(0, 200)}`;
           }
-        } catch (bodyError) {
-          console.error("[RunTrigger] Failed to read error response body:", bodyError);
+        } catch {
+          // Ignore error body parsing errors
         }
-        console.error("[RunTrigger] Webhook error details:", {
+        console.error("[RunTrigger] Webhook error response:", {
           status: webhookResponse.status,
           statusText: webhookResponse.statusText,
           errorMessage,
-          url: n8nWebhookUrl,
         });
         throw new Error(errorMessage);
-      }
-
-      // Log success response
-      try {
-        const successBody = await webhookResponse.text();
-        console.log("[RunTrigger] Success response body:", successBody);
-      } catch (bodyError) {
-        console.log("[RunTrigger] Could not read success response body:", bodyError);
       }
 
       console.log("[RunTrigger] Webhook sent successfully, updating status to processing");
