@@ -314,13 +314,22 @@ export async function POST(request: NextRequest) {
         if (!result.content) {
           console.warn(`[Webhook] Result ${index} missing content`);
         }
-        
+
         const mapped = {
           run_id: payload.runId,
           output_type: result.outputType,
           content: result.content || "",
           metadata: result.metadata || { sources: [] },
         };
+
+        console.log(`[Webhook] Mapped result ${index} for insertion:`, {
+          run_id: mapped.run_id,
+          output_type: mapped.output_type,
+          contentLength: mapped.content.length,
+          hasMetadata: !!mapped.metadata
+        });
+
+        return mapped;
         
         // #region agent log
         fetch('http://127.0.0.1:7242/ingest/7fc0794e-0f8c-4c87-bba6-bdd60340a322',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/webhooks/callback/route.ts:227',message:'Mapped result before insert',data:{index,run_id:mapped.run_id,output_type:mapped.output_type,hasContent:!!mapped.content,contentLength:mapped.content.length,contentPreview:mapped.content.substring(0,100),hasMetadata:!!mapped.metadata},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
@@ -331,6 +340,8 @@ export async function POST(request: NextRequest) {
 
       console.log(`[Webhook] Attempting to insert ${resultsToInsert.length} results...`);
       console.log(`[Webhook] First result sample:`, JSON.stringify(resultsToInsert[0], null, 2));
+      console.log(`[Webhook] Service role client type:`, typeof supabase);
+      console.log(`[Webhook] Run ID being used:`, payload.runId);
       
       // #region agent log
       fetch('http://127.0.0.1:7242/ingest/7fc0794e-0f8c-4c87-bba6-bdd60340a322',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/webhooks/callback/route.ts:232',message:'Before database insert',data:{resultsToInsertCount:resultsToInsert.length,firstResultContentLength:resultsToInsert[0]?.content?.length,firstResultContentPreview:resultsToInsert[0]?.content?.substring(0,100),firstResultHasContent:!!resultsToInsert[0]?.content},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
