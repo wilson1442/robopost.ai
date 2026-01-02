@@ -64,7 +64,7 @@ robopost.ai/
 
 ## Environment Variables
 
-Copy `.env.local.example` to `.env.local` and fill in the values:
+Copy `env.example` to `.env.local` and fill in the values:
 
 - **EARLY_ACCESS_WEBHOOK_URL**: Webhook URL for early access form submissions (required for early access functionality)
 - Phase 2+: Supabase and n8n configuration (see `.env.local.example`)
