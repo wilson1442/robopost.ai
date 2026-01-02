@@ -210,11 +210,12 @@ export async function POST(request: NextRequest) {
     // #endregion
     
     // Handle results - n8n may send it as a JSON string, plain string, or array
+    const resultsValue: unknown = payload.results;
     let resultsArray: typeof payload.results = payload.results;
-    if (payload.results && typeof payload.results === 'string') {
+    if (resultsValue && typeof resultsValue === 'string') {
       try {
         // Try to parse as JSON first
-        resultsArray = JSON.parse(payload.results);
+        resultsArray = JSON.parse(resultsValue);
         // #region agent log
         fetch('http://127.0.0.1:7242/ingest/7fc0794e-0f8c-4c87-bba6-bdd60340a322',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/webhooks/callback/route.ts:216',message:'Parsed results string to array',data:{runId:payload.runId,parsedIsArray:Array.isArray(resultsArray),parsedLength:resultsArray?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
         // #endregion
@@ -230,12 +231,12 @@ export async function POST(request: NextRequest) {
         }
         console.warn(`[Webhook] Results is a plain string, wrapping in array with output type: ${outputType}`);
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/7fc0794e-0f8c-4c87-bba6-bdd60340a322',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/webhooks/callback/route.ts:222',message:'Results is plain string, wrapping',data:{runId:payload.runId,stringLength:payload.results.length,stringPreview:payload.results.substring(0,100),determinedOutputType:outputType},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/7fc0794e-0f8c-4c87-bba6-bdd60340a322',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/webhooks/callback/route.ts:222',message:'Results is plain string, wrapping',data:{runId:payload.runId,stringLength:(resultsValue as string).length,stringPreview:(resultsValue as string).substring(0,100),determinedOutputType:outputType},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
         // #endregion
         // Wrap the plain string in the expected array format
         resultsArray = [{
           outputType: outputType,
-          content: payload.results,
+          content: resultsValue as string,
           metadata: {}
         }];
       }
