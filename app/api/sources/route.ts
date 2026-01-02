@@ -28,8 +28,7 @@ export async function GET(request: Request) {
           industries (
             id,
             slug,
-            name,
-            created_at
+            name
           )
         )
       `
@@ -62,7 +61,6 @@ export async function GET(request: Request) {
           id: industry.id,
           slug: industry.slug,
           name: industry.name,
-          created_at: industry.created_at,
         } : null,
         createdAt: us.created_at,
         rssSourceId: rssSource?.id || "",
@@ -237,8 +235,7 @@ export async function POST(request: Request) {
           industries (
             id,
             slug,
-            name,
-            created_at
+            name
           )
         )
       `
@@ -275,7 +272,6 @@ export async function POST(request: Request) {
           id: industry.id,
           slug: industry.slug,
           name: industry.name,
-          created_at: industry.created_at,
         } : null,
         createdAt: userSource.created_at,
         rssSourceId: rssSource?.id || "",

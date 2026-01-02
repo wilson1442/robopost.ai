@@ -32,7 +32,7 @@ export interface Industry {
   name: string; // TEXT
   description?: string | null; // TEXT
   default_prompt_template?: string | null; // TEXT
-  created_at: string; // TIMESTAMPTZ
+  created_at?: string; // TIMESTAMPTZ (optional - may not exist in all database instances)
 }
 
 /**
