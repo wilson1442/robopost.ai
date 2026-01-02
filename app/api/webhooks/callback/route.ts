@@ -282,6 +282,23 @@ export async function POST(request: NextRequest) {
     if (resultsArray && Array.isArray(resultsArray) && resultsArray.length > 0) {
       console.log(`[Webhook] Inserting ${resultsArray.length} results for run ${payload.runId}`);
       console.log(`[Webhook] Results sample:`, JSON.stringify(resultsArray[0], null, 2));
+
+      // Validate each result has required fields
+      resultsArray.forEach((result, index) => {
+        if (!result.outputType) {
+          console.error(`[Webhook] Result ${index} missing outputType!`);
+        }
+        if (!result.content) {
+          console.error(`[Webhook] Result ${index} missing content!`);
+        }
+        console.log(`[Webhook] Result ${index} validation:`, {
+          hasOutputType: !!result.outputType,
+          outputType: result.outputType,
+          hasContent: !!result.content,
+          contentLength: result.content?.length || 0,
+          hasMetadata: !!result.metadata
+        });
+      });
       
       // #region agent log
       resultsArray.forEach((result, index) => {
@@ -337,11 +354,16 @@ export async function POST(request: NextRequest) {
         console.error("Attempted to insert:", JSON.stringify(resultsToInsert, null, 2));
         console.error("Service role key present:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
         console.error("Supabase URL present:", !!process.env.NEXT_PUBLIC_SUPABASE_URL);
-        
-        // Log the error but still return success to n8n (don't retry)
-        // The run status has already been updated, which is the most important part
-        // We'll investigate the results insertion issue separately
-        console.error("⚠️ Results insertion failed, but run status was updated successfully");
+
+        // Return error for results insertion failure so we can debug
+        return NextResponse.json(
+          {
+            error: "Failed to store results",
+            details: resultsError.message,
+            code: resultsError.code
+          },
+          { status: 500 }
+        );
       } else {
         console.log(`✅ Successfully inserted ${insertedResults?.length || 0} results`);
         console.log(`[Webhook] Inserted result IDs:`, insertedResults?.map(r => r.id));
