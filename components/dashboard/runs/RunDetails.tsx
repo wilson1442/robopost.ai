@@ -1,6 +1,6 @@
 "use client";
 
-import { AgentRunWithResults } from "@/types/database";
+import { AgentRunWithResults, AgentResult } from "@/types/database";
 import ResultCard from "./ResultCard";
 import { useEffect, useState, useRef } from "react";
 
@@ -113,7 +113,7 @@ export default function RunDetails({ run: initialRun }: RunDetailsProps) {
     }
     acc[result.output_type].push(result);
     return acc;
-  }, {} as Record<string, typeof run.results>);
+  }, {} as Record<string, AgentResult[]>);
 
   // Debug logging for results rendering
   useEffect(() => {
