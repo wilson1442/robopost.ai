@@ -123,11 +123,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if this run is configured for streaming
+    const isStreamingEnabled = agentRun.webhook_payload &&
+                               typeof agentRun.webhook_payload === 'object' &&
+                               (agentRun.webhook_payload as any).streaming?.enabled;
+
+    console.log("[Webhook] Streaming enabled:", isStreamingEnabled);
+
     // Handle progress updates (streaming status messages)
     if (payload.status === "progress" && payload.progress) {
       console.log(`[Webhook] Progress update for run ${payload.runId}:`, payload.progress.message);
-      console.log(`[Webhook] Service role client created, attempting insert...`);
-      
+      console.log(`[Webhook] Streaming enabled: ${isStreamingEnabled}`);
+
       const { error: progressError, data: insertedProgress } = await supabase
         .from("run_progress_logs")
         .insert({
@@ -143,11 +150,11 @@ export async function POST(request: NextRequest) {
         console.error("Service role key present:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
         // Don't fail the request, just log the error
         return NextResponse.json(
-          { 
-            success: false, 
-            message: "Progress update failed", 
+          {
+            success: false,
+            message: "Progress update failed",
             error: progressError.message,
-            details: progressError 
+            details: progressError
           },
           { status: 500 }
         );
@@ -157,7 +164,12 @@ export async function POST(request: NextRequest) {
 
       // Keep status as "processing" for progress updates
       return NextResponse.json(
-        { success: true, message: "Progress update recorded", data: insertedProgress },
+        {
+          success: true,
+          message: "Progress update recorded",
+          streaming: isStreamingEnabled,
+          data: insertedProgress
+        },
         { status: 200 }
       );
     }
@@ -324,7 +336,12 @@ export async function POST(request: NextRequest) {
 
     // Return success response to n8n
     return NextResponse.json(
-      { success: true, message: "Webhook processed successfully" },
+      {
+        success: true,
+        message: "Webhook processed successfully",
+        streaming: isStreamingEnabled,
+        resultsStored: resultsArray ? resultsArray.length : 0
+      },
       { status: 200 }
     );
   } catch (error) {

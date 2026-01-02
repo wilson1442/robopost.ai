@@ -10,8 +10,9 @@ interface RunDetailsProps {
 
 export default function RunDetails({ run: initialRun }: RunDetailsProps) {
   const [run, setRun] = useState<AgentRunWithResults>(initialRun);
-  const [isPolling, setIsPolling] = useState(false);
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamError, setStreamError] = useState<string | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   // Debug logging for initial run data
   useEffect(() => {
@@ -25,71 +26,135 @@ export default function RunDetails({ run: initialRun }: RunDetailsProps) {
     });
   }, [initialRun]);
 
-  // Poll for updates when run is pending or processing
+  // Set up SSE streaming when run is pending or processing
   useEffect(() => {
-    const shouldPoll = run.status === "pending" || run.status === "processing";
-    
-    // Clear any existing interval
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
+    const shouldStream = run.status === "pending" || run.status === "processing";
+
+    // Clean up any existing connection
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
     }
-    
-    if (!shouldPoll) {
-      setIsPolling(false);
+
+    if (!shouldStream) {
+      setIsStreaming(false);
+      setStreamError(null);
       return;
     }
 
-    setIsPolling(true);
-    
-    pollIntervalRef.current = setInterval(async () => {
-      try {
-        const response = await fetch(`/api/runs/${run.id}`);
-        if (!response.ok) {
-          console.error("[RunDetails] Failed to fetch run updates:", {
-            status: response.status,
-            statusText: response.statusText,
-          });
-          return;
-        }
-        
-        const data = await response.json();
-        if (data.run) {
-          console.log("[RunDetails] Polling update received:", {
-            runId: data.run.id,
-            status: data.run.status,
-            resultsCount: data.run.results?.length || 0,
-            results: data.run.results?.map((r: any) => ({ id: r.id, output_type: r.output_type })),
-            resultsError: data.run.resultsError,
-          });
-          
-          // Ensure results are preserved when updating run state
-          setRun({
-            ...data.run,
-            results: data.run.results || [],
-            progressLogs: data.run.progressLogs || [],
-          });
-          
-          // Stop polling if status changed to completed or failed
-          if (data.run.status === "completed" || data.run.status === "failed") {
-            if (pollIntervalRef.current) {
-              clearInterval(pollIntervalRef.current);
-              pollIntervalRef.current = null;
-            }
-            setIsPolling(false);
+    setIsStreaming(true);
+    setStreamError(null);
+
+    console.log("[RunDetails] Setting up SSE connection for run:", run.id);
+
+    // Create EventSource connection
+    const eventSource = new EventSource(`/api/runs/${run.id}/stream`);
+    eventSourceRef.current = eventSource;
+
+    eventSource.onopen = () => {
+      console.log("[RunDetails] SSE connection opened for run:", run.id);
+      setStreamError(null);
+    };
+
+    eventSource.onmessage = (event) => {
+      console.log("[RunDetails] SSE message received:", event.type, event.data);
+    };
+
+    eventSource.addEventListener("connected", (event) => {
+      const data = JSON.parse(event.data);
+      console.log("[RunDetails] SSE connected:", data);
+    });
+
+    eventSource.addEventListener("status", (event) => {
+      const data = JSON.parse(event.data);
+      console.log("[RunDetails] SSE status update:", data);
+
+      setRun(prevRun => ({
+        ...prevRun,
+        status: data.status,
+        completed_at: data.completed_at,
+        error_message: data.error_message,
+      }));
+    });
+
+    eventSource.addEventListener("progress", (event) => {
+      const data = JSON.parse(event.data);
+      console.log("[RunDetails] SSE progress update:", data);
+
+      setRun(prevRun => ({
+        ...prevRun,
+        progressLogs: [
+          ...(prevRun.progressLogs || []),
+          {
+            id: data.id,
+            run_id: run.id,
+            message: data.message,
+            status: data.status,
+            created_at: data.created_at,
           }
+        ],
+      }));
+    });
+
+    eventSource.addEventListener("result", (event) => {
+      const data = JSON.parse(event.data);
+      console.log("[RunDetails] SSE result received:", {
+        id: data.id,
+        output_type: data.output_type,
+        contentLength: data.content?.length,
+      });
+
+      setRun(prevRun => ({
+        ...prevRun,
+        results: [
+          ...(prevRun.results || []),
+          {
+            id: data.id,
+            run_id: run.id,
+            output_type: data.output_type,
+            content: data.content,
+            metadata: data.metadata,
+            created_at: data.created_at,
+          }
+        ],
+      }));
+    });
+
+    eventSource.addEventListener("complete", (event) => {
+      const data = JSON.parse(event.data);
+      console.log("[RunDetails] SSE stream completed:", data);
+
+      setIsStreaming(false);
+      eventSource.close();
+      eventSourceRef.current = null;
+    });
+
+    eventSource.addEventListener("error", (event) => {
+      // Error events from SSE don't have data, just log the event
+      console.error("[RunDetails] SSE error event:", event);
+      setStreamError("Streaming connection error");
+    });
+
+    eventSource.onerror = (error) => {
+      console.error("[RunDetails] SSE connection error:", error);
+      setStreamError("Lost connection to server");
+
+      // Attempt to reconnect after a delay
+      setTimeout(() => {
+        if (shouldStream && !eventSourceRef.current) {
+          console.log("[RunDetails] Attempting to reconnect SSE...");
+          // The useEffect will re-run and create a new connection
         }
-      } catch (error) {
-        console.error("[RunDetails] Error polling for run updates:", error);
-      }
-    }, 3000); // Poll every 3 seconds
+      }, 5000);
+    };
 
     return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-        pollIntervalRef.current = null;
+      if (eventSourceRef.current) {
+        console.log("[RunDetails] Cleaning up SSE connection");
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
       }
-      setIsPolling(false);
+      setIsStreaming(false);
     };
   }, [run.id, run.status]);
   const getStatusColor = (status: string) => {
@@ -136,13 +201,21 @@ export default function RunDetails({ run: initialRun }: RunDetailsProps) {
             <h2 className="text-2xl font-bold text-white mb-2">Run Details</h2>
             <p className="text-sm text-gray-400">
               Run ID: {run.id}
-              {isPolling && (
-                <span className="ml-2 inline-flex items-center text-yellow-400">
-                  <svg className="animate-spin h-3 w-3 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              {isStreaming && (
+                <span className="ml-2 inline-flex items-center text-green-400">
+                  <svg className="animate-pulse h-3 w-3 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Checking for updates...
+                  Live streaming...
+                </span>
+              )}
+              {streamError && (
+                <span className="ml-2 inline-flex items-center text-red-400">
+                  <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {streamError}
                 </span>
               )}
             </p>
@@ -246,11 +319,23 @@ export default function RunDetails({ run: initialRun }: RunDetailsProps) {
             )}
             {(run.status === "pending" || run.status === "processing") && (
               <div className="flex items-center space-x-2 text-blue-400 text-sm pt-2">
-                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>Processing...</span>
+                {isStreaming ? (
+                  <>
+                    <svg className="animate-pulse h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Streaming live updates...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Connecting to stream...</span>
+                  </>
+                )}
               </div>
             )}
           </div>

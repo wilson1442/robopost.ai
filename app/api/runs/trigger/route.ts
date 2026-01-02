@@ -101,12 +101,21 @@ export async function POST(request: NextRequest) {
         name: us.rss_sources.name,
       }));
 
+    // Get base URL for streaming endpoint
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
+                    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+    const streamingUrl = `${baseUrl}/api/runs/${runId}/stream`;
+
     // Construct webhook payload
     const webhookPayload: OutboundWebhookPayload = {
       version: "v1",
       runId,
       userId: user.id,
       timestamp: new Date().toISOString(),
+      streaming: {
+        enabled: true, // Enable streaming by default
+        callbackUrl: `${baseUrl}/api/webhooks/callback`, // Fallback for legacy support
+      },
       config: {
         industry: industrySlug || "",
         rssSources,
