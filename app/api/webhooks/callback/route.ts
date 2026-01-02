@@ -62,11 +62,13 @@ export async function POST(request: NextRequest) {
     let payload: InboundWebhookPayload;
     try {
       payload = JSON.parse(body);
-      console.log("[Webhook] Parsed payload:", {
+      console.log("[Webhook] Full parsed payload:", JSON.stringify(payload, null, 2));
+      console.log("[Webhook] Parsed payload summary:", {
         runId: payload.runId,
         status: payload.status,
         resultsCount: payload.results?.length || 0,
         hasError: !!payload.error,
+        errorDetails: payload.error,
       });
     } catch (parseError) {
       console.error("Failed to parse webhook payload:", parseError);
@@ -197,11 +199,22 @@ export async function POST(request: NextRequest) {
       completed_at: new Date().toISOString(),
     };
 
-    if (payload.error) {
-      updateData.error_message = payload.error.message || JSON.stringify(payload.error);
+    // Only set error_message if status is failed OR if there's a meaningful error message
+    if (finalStatus === "failed" && payload.error) {
+      const errorMessage = payload.error.message || payload.error.code;
+      if (errorMessage && errorMessage.trim()) {
+        updateData.error_message = errorMessage;
+      }
     }
 
-    console.log(`[Webhook] Updating run ${payload.runId} to status: ${finalStatus}`);
+    console.log(`[Webhook] Updating run ${payload.runId} to status: ${finalStatus}`, {
+      hasError: !!payload.error,
+      errorDetails: payload.error,
+      hasResults: !!payload.results,
+      resultsType: typeof payload.results,
+      resultsLength: Array.isArray(payload.results) ? payload.results.length : 'N/A',
+      updateData
+    });
     const { error: updateError, data: updatedRun } = await supabase
       .from("agent_runs")
       .update(updateData)
@@ -219,6 +232,14 @@ export async function POST(request: NextRequest) {
     console.log(`[Webhook] Successfully updated run ${payload.runId}`, updatedRun);
 
     // Store agent_results if provided
+    console.log(`[Webhook] Processing results for run ${payload.runId}:`, {
+      hasResults: !!payload.results,
+      resultsType: typeof payload.results,
+      resultsIsArray: Array.isArray(payload.results),
+      resultsLength: payload.results?.length || 0,
+      rawResults: payload.results
+    });
+
     // #region agent log
     fetch('http://127.0.0.1:7242/ingest/7fc0794e-0f8c-4c87-bba6-bdd60340a322',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/api/webhooks/callback/route.ts:208',message:'Webhook payload received',data:{runId:payload.runId,status:payload.status,hasResults:!!payload.results,resultsIsArray:Array.isArray(payload.results),resultsType:typeof payload.results,resultsLength:payload.results?.length,firstResultKeys:payload.results?.[0]?Object.keys(payload.results[0]):null,firstResultSample:payload.results?.[0]?JSON.stringify(payload.results[0]).substring(0,500):null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
     // #endregion
@@ -324,6 +345,7 @@ export async function POST(request: NextRequest) {
       } else {
         console.log(`✅ Successfully inserted ${insertedResults?.length || 0} results`);
         console.log(`[Webhook] Inserted result IDs:`, insertedResults?.map(r => r.id));
+        console.log(`[Webhook] Results successfully stored for run ${payload.runId}`);
       }
     } else {
       // #region agent log
