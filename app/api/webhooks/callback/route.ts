@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     // Skip HMAC verification in development for easier testing
     // TODO: Re-enable HMAC verification for production callback endpoints
     // Currently disabled to allow n8n progress updates during streaming development
-    if (!isDevelopment && false) { // Temporarily disabled for streaming testing
+    if (false) { // Temporarily disabled for streaming testing
       if (!signature) {
         console.error("Missing HMAC signature in request headers");
         return NextResponse.json(
