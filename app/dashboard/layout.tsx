@@ -10,8 +10,9 @@ export default async function DashboardLayout({
   const user = await requireAuth();
   const supabase = await createClient();
 
-  // Check if user is admin
-  const isAdmin = user.user_metadata?.role === "admin" || user.app_metadata?.role === "admin";
+  // Check if user is admin (check auth metadata only)
+  const isAdmin = user.user_metadata?.role === "admin" ||
+                  user.app_metadata?.role === "admin";
   const userRole = isAdmin ? "Admin" : "User";
 
   return (

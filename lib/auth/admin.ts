@@ -9,14 +9,12 @@ import { getUser } from "./auth";
 export function isAdmin(user: User | null): boolean {
   if (!user) return false;
 
-  const authRole = user.user_metadata?.role || user.app_metadata?.role || user.raw_user_meta_data?.role || user.raw_app_meta_data?.role;
+  const authRole = user.user_metadata?.role || user.app_metadata?.role;
 
   // Debug logging for Vercel
   console.log('isAdmin check for user:', user.id, {
     userMetadataRole: user.user_metadata?.role,
     appMetadataRole: user.app_metadata?.role,
-    rawUserMetadataRole: user.raw_user_meta_data?.role,
-    rawAppMetadataRole: user.raw_app_meta_data?.role,
     finalRole: authRole,
     isAdmin: authRole === "admin"
   });

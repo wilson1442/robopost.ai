@@ -22,17 +22,13 @@ export default async function DashboardLayout({
   console.log('User ID:', user.id);
   console.log('User metadata:', JSON.stringify(user.user_metadata, null, 2));
   console.log('App metadata:', JSON.stringify(user.app_metadata, null, 2));
-  console.log('Raw user metadata:', JSON.stringify(user.raw_user_meta_data, null, 2));
-  console.log('Raw app metadata:', JSON.stringify(user.raw_app_meta_data, null, 2));
   console.log('Database profile:', JSON.stringify(dbProfile, null, 2));
   console.log('Database profile role:', dbProfile?.role);
   console.log('=== END ADMIN DEBUG ===');
 
-  // Check if user is admin (check both processed and raw metadata)
+  // Check if user is admin (check auth metadata only)
   const isAdmin = user.user_metadata?.role === "admin" ||
-                  user.app_metadata?.role === "admin" ||
-                  user.raw_user_meta_data?.role === "admin" ||
-                  user.raw_app_meta_data?.role === "admin";
+                  user.app_metadata?.role === "admin";
   const userRole = isAdmin ? "Admin" : "User";
 
   console.log('Final admin check result:', { isAdmin, userRole });
