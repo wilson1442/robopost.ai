@@ -10,9 +10,32 @@ export default async function DashboardLayout({
   const user = await requireAuth();
   const supabase = await createClient();
 
-  // Check if user is admin
-  const isAdmin = user.user_metadata?.role === "admin" || user.app_metadata?.role === "admin";
+  // Check database user profile for role field
+  const { data: dbProfile } = await supabase
+    .from('user_profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+
+  // Debug logging for Vercel (works in both local and production)
+  console.log('=== ADMIN DEBUG ===');
+  console.log('User ID:', user.id);
+  console.log('User metadata:', JSON.stringify(user.user_metadata, null, 2));
+  console.log('App metadata:', JSON.stringify(user.app_metadata, null, 2));
+  console.log('Raw user metadata:', JSON.stringify(user.raw_user_meta_data, null, 2));
+  console.log('Raw app metadata:', JSON.stringify(user.raw_app_meta_data, null, 2));
+  console.log('Database profile:', JSON.stringify(dbProfile, null, 2));
+  console.log('Database profile role:', dbProfile?.role);
+  console.log('=== END ADMIN DEBUG ===');
+
+  // Check if user is admin (check both processed and raw metadata)
+  const isAdmin = user.user_metadata?.role === "admin" ||
+                  user.app_metadata?.role === "admin" ||
+                  user.raw_user_meta_data?.role === "admin" ||
+                  user.raw_app_meta_data?.role === "admin";
   const userRole = isAdmin ? "Admin" : "User";
+
+  console.log('Final admin check result:', { isAdmin, userRole });
 
   return (
     <div className="min-h-screen bg-gray-950">
