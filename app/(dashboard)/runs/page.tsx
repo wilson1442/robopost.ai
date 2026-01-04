@@ -9,6 +9,19 @@ export default async function RunsPage() {
   const supabase = await createClient();
   const admin = isAdmin(user);
 
+  // Fallback: check database role if auth role not found
+  let dbAdmin = false;
+  if (!admin) {
+    const supabase = await createClient();
+    const { data: dbProfile } = await supabase
+      .from('user_profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+    dbAdmin = dbProfile?.role === "admin";
+  }
+  const finalAdmin = admin || dbAdmin;
+
   // Build query - admins see all runs, regular users see only their own
   let runsQuery = supabase
     .from("agent_runs")
