@@ -40,9 +40,13 @@ export async function middleware(request: NextRequest) {
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
         getAll() {
-          return request.cookies.getAll();
+          console.log("[Middleware] Getting all cookies");
+          const allCookies = request.cookies.getAll();
+          console.log("[Middleware] Cookies found:", allCookies.map(c => ({ name: c.name, value: c.value.substring(0, 20) + "..." })));
+          return allCookies;
         },
         setAll(cookiesToSet) {
+          console.log("[Middleware] Setting cookies:", cookiesToSet.map(c => ({ name: c.name, hasValue: !!c.value })));
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
               request.cookies.set(name, value)
@@ -95,7 +99,17 @@ export async function middleware(request: NextRequest) {
     const isApiRoute = request.nextUrl.pathname.startsWith("/api");
     const isProfilePage = request.nextUrl.pathname === "/profile" || request.nextUrl.pathname.startsWith("/dashboard/profile");
 
+    console.log("[Middleware] Route check:", {
+      pathname: request.nextUrl.pathname,
+      isProtectedPath,
+      isApiRoute,
+      isProfilePage,
+      hasUser: !!user,
+      userId: user?.id
+    });
+
     if (isProtectedPath && !user) {
+      console.log("[Middleware] Redirecting to sign-in - no authenticated user found");
       try {
         const url = request.nextUrl.clone();
         url.pathname = "/sign-in";
