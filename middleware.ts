@@ -7,6 +7,12 @@ export async function middleware(request: NextRequest) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   // Enhanced logging to help debug
+  console.log("[Middleware] Checking environment variables...");
+  console.log("[Middleware] supabaseUrl exists:", !!supabaseUrl);
+  console.log("[Middleware] supabaseAnonKey exists:", !!supabaseAnonKey);
+  console.log("[Middleware] supabaseUrl length:", supabaseUrl?.length || 0);
+  console.log("[Middleware] supabaseAnonKey length:", supabaseAnonKey?.length || 0);
+
   if (!supabaseUrl || !supabaseAnonKey) {
     console.error(
       "[Middleware] Missing Supabase environment variables.",
@@ -30,6 +36,7 @@ export async function middleware(request: NextRequest) {
   let user = null;
 
   try {
+    console.log("[Middleware] Creating Supabase client...");
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
         getAll() {
@@ -53,16 +60,25 @@ export async function middleware(request: NextRequest) {
       },
     });
 
+    console.log("[Middleware] Calling supabase.auth.getUser()...");
     const {
       data: { user: authUser },
       error: authError,
     } = await supabase.auth.getUser();
+
+    console.log("[Middleware] Auth result:", {
+      hasUser: !!authUser,
+      hasError: !!authError,
+      errorMessage: authError?.message,
+      userId: authUser?.id
+    });
 
     if (authError) {
       console.error("[Middleware] Error getting user:", authError.message);
       // Continue without user - fail open
     } else {
       user = authUser;
+      console.log("[Middleware] User found:", user?.id);
     }
   } catch (error) {
     console.error("[Middleware] Error creating Supabase client or getting user:", error);
