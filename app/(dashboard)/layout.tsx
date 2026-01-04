@@ -11,27 +11,33 @@ export default async function DashboardLayout({
   const supabase = await createClient();
 
   // Check database user profile for role field
-  const { data: dbProfile } = await supabase
+  const { data: dbProfile, error: dbError } = await supabase
     .from('user_profiles')
     .select('*')
     .eq('id', user.id)
     .single();
 
+  // Check if user is admin (check auth metadata first)
+  const authIsAdmin = user.user_metadata?.role === "admin" ||
+                      user.app_metadata?.role === "admin";
+
+  // Check database role as fallback
+  const dbIsAdmin = dbProfile?.role === "admin";
+  const finalIsAdmin = authIsAdmin || dbIsAdmin;
+  const finalUserRole = finalIsAdmin ? "Admin" : "User";
+
   // Debug logging for Vercel (works in both local and production)
   console.log('=== ADMIN DEBUG ===');
   console.log('User ID:', user.id);
+  console.log('Auth isAdmin:', authIsAdmin, 'Auth userRole:', authIsAdmin ? "Admin" : "User");
+  console.log('DB isAdmin:', dbIsAdmin, 'DB userRole:', dbProfile?.role);
+  console.log('DB Error:', dbError?.message || 'None');
+  console.log('DB Profile exists:', !!dbProfile);
+  console.log('FINAL isAdmin:', finalIsAdmin, 'FINAL userRole:', finalUserRole);
   console.log('User metadata:', JSON.stringify(user.user_metadata, null, 2));
   console.log('App metadata:', JSON.stringify(user.app_metadata, null, 2));
   console.log('Database profile:', JSON.stringify(dbProfile, null, 2));
-  console.log('Database profile role:', dbProfile?.role);
   console.log('=== END ADMIN DEBUG ===');
-
-  // Check if user is admin (check auth metadata only)
-  const isAdmin = user.user_metadata?.role === "admin" ||
-                  user.app_metadata?.role === "admin";
-  const userRole = isAdmin ? "Admin" : "User";
-
-  console.log('Final admin check result:', { isAdmin, userRole });
 
   return (
     <div className="min-h-screen bg-gray-950">
@@ -61,7 +67,7 @@ export default async function DashboardLayout({
                 >
                   Sources
                 </Link>
-                {isAdmin && (
+                {finalIsAdmin && (
                   <Link
                     href="/admin/users"
                     className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-300 hover:text-white border-b-2 border-transparent hover:border-primary-500 transition-colors"
@@ -73,11 +79,11 @@ export default async function DashboardLayout({
             </div>
             <div className="flex items-center space-x-4">
               <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
-                isAdmin
+                finalIsAdmin
                   ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
                   : "bg-blue-500/20 text-blue-300 border border-blue-500/30"
               }`}>
-                {userRole}
+                {finalUserRole}
               </span>
               <Link
                 href="/dashboard/profile"
