@@ -9,9 +9,11 @@ export default async function DashboardLayout({
 }) {
   const user = await requireAuth();
   const supabase = await createClient();
-  
-  // Check if user is admin (you may need to adjust this based on your auth setup)
-  const isAdmin = user.user_metadata?.role === "admin" || user.app_metadata?.role === "admin";
+
+  // Check if user is admin (check auth metadata only)
+  const isAdmin = user.user_metadata?.role === "admin" ||
+                  user.app_metadata?.role === "admin";
+  const userRole = isAdmin ? "Admin" : "User";
 
   return (
     <div className="min-h-screen bg-gray-950">
@@ -46,6 +48,13 @@ export default async function DashboardLayout({
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+                isAdmin
+                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                  : "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+              }`}>
+                {userRole}
+              </span>
               <Link
                 href="/dashboard/profile"
                 className="text-sm text-gray-300 hover:text-white transition-colors"

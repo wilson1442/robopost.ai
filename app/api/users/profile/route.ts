@@ -54,7 +54,30 @@ export async function PATCH(request: Request) {
     const supabase = await createClient();
 
     const body = await request.json();
-    const { industry_preference } = body;
+    const { industry_preference_id } = body;
+
+    // Get existing profile to check if industry is locked
+    const { data: existingProfile } = await supabase
+      .from("user_profiles")
+      .select("industry_preference_id, industry_preference_locked")
+      .eq("id", user.id)
+      .single();
+
+    // Check if trying to change a locked industry
+    if (
+      existingProfile?.industry_preference_locked &&
+      existingProfile?.industry_preference_id &&
+      industry_preference_id &&
+      existingProfile.industry_preference_id !== industry_preference_id
+    ) {
+      return NextResponse.json(
+        { error: "Industry preference is locked and cannot be changed" },
+        { status: 400 }
+      );
+    }
+
+    // Determine if this is first time setting industry
+    const isFirstTime = !existingProfile?.industry_preference_id && industry_preference_id;
 
     // Update or insert profile
     const { data: profile, error } = await supabase
@@ -62,7 +85,10 @@ export async function PATCH(request: Request) {
       .upsert(
         {
           id: user.id,
-          industry_preference: industry_preference || null,
+          industry_preference_id: industry_preference_id || null,
+          industry_preference_locked: isFirstTime
+            ? true
+            : existingProfile?.industry_preference_locked || false,
           updated_at: new Date().toISOString(),
         },
         {

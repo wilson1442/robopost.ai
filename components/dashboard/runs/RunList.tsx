@@ -6,9 +6,10 @@ import { useEffect, useState, useRef } from "react";
 
 interface RunListProps {
   runs: AgentRun[];
+  showUser?: boolean;
 }
 
-export default function RunList({ runs: initialRuns }: RunListProps) {
+export default function RunList({ runs: initialRuns, showUser = false }: RunListProps) {
   const [runs, setRuns] = useState<AgentRun[]>(initialRuns);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -114,6 +115,9 @@ export default function RunList({ runs: initialRuns }: RunListProps) {
                 <p className="text-xs text-gray-400">
                   {new Date(run.triggered_at).toLocaleString()}
                   {run.completed_at && ` • Completed: ${new Date(run.completed_at).toLocaleString()}`}
+                  {showUser && run.user_id && (
+                    <span className="ml-2 text-gray-500">• User: {run.user_id.slice(0, 8)}...</span>
+                  )}
                 </p>
               </div>
             </div>

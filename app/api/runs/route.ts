@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/auth";
+import { isAdmin } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
 import { AgentRunsResponse } from "@/types/database";
 
@@ -7,19 +8,23 @@ export async function GET(request: NextRequest) {
   try {
     const user = await requireAuth();
     const supabase = await createClient();
+    const admin = isAdmin(user);
 
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
     const status = searchParams.get("status");
 
-    // Build query
+    // Build query - admins see all runs, regular users see only their own
     let query = supabase
       .from("agent_runs")
       .select("id, user_id, status, industry_id, prompt_instructions, triggered_at, completed_at, error_message, created_at")
-      .eq("user_id", user.id)
       .order("triggered_at", { ascending: false })
       .range(offset, offset + limit - 1);
+
+    if (!admin) {
+      query = query.eq("user_id", user.id);
+    }
 
     // Filter by status if provided
     if (status && ["pending", "processing", "completed", "failed"].includes(status)) {

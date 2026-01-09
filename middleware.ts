@@ -7,6 +7,12 @@ export async function middleware(request: NextRequest) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   // Enhanced logging to help debug
+  console.log("[Middleware] Checking environment variables...");
+  console.log("[Middleware] supabaseUrl exists:", !!supabaseUrl);
+  console.log("[Middleware] supabaseAnonKey exists:", !!supabaseAnonKey);
+  console.log("[Middleware] supabaseUrl length:", supabaseUrl?.length || 0);
+  console.log("[Middleware] supabaseAnonKey length:", supabaseAnonKey?.length || 0);
+
   if (!supabaseUrl || !supabaseAnonKey) {
     console.error(
       "[Middleware] Missing Supabase environment variables.",
@@ -30,12 +36,17 @@ export async function middleware(request: NextRequest) {
   let user = null;
 
   try {
+    console.log("[Middleware] Creating Supabase client...");
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
         getAll() {
-          return request.cookies.getAll();
+          console.log("[Middleware] Getting all cookies");
+          const allCookies = request.cookies.getAll();
+          console.log("[Middleware] Cookies found:", allCookies.map(c => ({ name: c.name, value: c.value.substring(0, 20) + "..." })));
+          return allCookies;
         },
         setAll(cookiesToSet) {
+          console.log("[Middleware] Setting cookies:", cookiesToSet.map(c => ({ name: c.name, hasValue: !!c.value })));
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
               request.cookies.set(name, value)
@@ -53,16 +64,25 @@ export async function middleware(request: NextRequest) {
       },
     });
 
+    console.log("[Middleware] Calling supabase.auth.getUser()...");
     const {
       data: { user: authUser },
       error: authError,
     } = await supabase.auth.getUser();
+
+    console.log("[Middleware] Auth result:", {
+      hasUser: !!authUser,
+      hasError: !!authError,
+      errorMessage: authError?.message,
+      userId: authUser?.id
+    });
 
     if (authError) {
       console.error("[Middleware] Error getting user:", authError.message);
       // Continue without user - fail open
     } else {
       user = authUser;
+      console.log("[Middleware] User found:", user?.id);
     }
   } catch (error) {
     console.error("[Middleware] Error creating Supabase client or getting user:", error);
@@ -72,12 +92,24 @@ export async function middleware(request: NextRequest) {
 
   try {
     // Protect dashboard routes
-    const protectedPaths = ["/admin", "/sources", "/dashboard"];
+    const protectedPaths = ["/admin", "/sources", "/dashboard", "/runs"];
     const isProtectedPath = protectedPaths.some((path) =>
       request.nextUrl.pathname.startsWith(path)
     );
+    const isApiRoute = request.nextUrl.pathname.startsWith("/api");
+    const isProfilePage = request.nextUrl.pathname === "/profile" || request.nextUrl.pathname.startsWith("/dashboard/profile");
+
+    console.log("[Middleware] Route check:", {
+      pathname: request.nextUrl.pathname,
+      isProtectedPath,
+      isApiRoute,
+      isProfilePage,
+      hasUser: !!user,
+      userId: user?.id
+    });
 
     if (isProtectedPath && !user) {
+      console.log("[Middleware] Redirecting to sign-in - no authenticated user found");
       try {
         const url = request.nextUrl.clone();
         url.pathname = "/sign-in";
@@ -87,6 +119,41 @@ export async function middleware(request: NextRequest) {
         console.error("[Middleware] Error creating redirect URL:", error);
         // If redirect fails, allow request to proceed
         return NextResponse.next({ request });
+      }
+    }
+
+    // Check for industry preference requirement (skip API routes and profile page)
+    if (user && isProtectedPath && !isApiRoute && !isProfilePage) {
+      try {
+        // Check if user has industry preference
+        // We'll do a lightweight check here - full check happens in layout
+        // This is just to redirect to profile if needed
+        const supabaseForCheck = createServerClient(supabaseUrl, supabaseAnonKey, {
+          cookies: {
+            getAll() {
+              return request.cookies.getAll();
+            },
+            setAll(cookiesToSet) {
+              // Don't set cookies in middleware check
+            },
+          },
+        });
+
+        const { data: profile } = await supabaseForCheck
+          .from("user_profiles")
+          .select("industry_preference_id")
+          .eq("id", user.id)
+          .single();
+
+        if (!profile?.industry_preference_id) {
+          const url = request.nextUrl.clone();
+          url.pathname = "/profile";
+          url.searchParams.set("require_industry", "true");
+          return NextResponse.redirect(url);
+        }
+      } catch (error) {
+        // If check fails, allow request to proceed (fail open)
+        console.error("[Middleware] Error checking industry preference:", error);
       }
     }
 
